@@ -21,8 +21,8 @@ foreach ( $C as $name => $val )
 /*
  * —оздать PDO-объект
  */
-$dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME;
-$dbo = new PDO($dsn, DB_USER, DB_PASS);
+$strDSN = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME;
+$objDB = new PDO($strDSN, DB_USER, DB_PASS);
 
 /*
  * ќпределить дл€ классов функцию автозагрузки
@@ -31,12 +31,12 @@ $dbo = new PDO($dsn, DB_USER, DB_PASS);
  * делаетс€ попытка создани€ экземпл€ра класса, но сам класс к этому 
  * времени еще не был загружен.
  */
-function __autoload($class)
+function __autoload($strClassName)
 {
-	$filename = "..sys/class/class." . $class . ".inc.php";
-	if ( file_exists($filename) )
+	$strFileName = "..sys/class/class." . $strClassName . ".inc.php";
+	if ( file_exists($strFileName) )
 	{
-		include_once $filename;
+		include_once $strFileName;
 	}
 }
 ?>
