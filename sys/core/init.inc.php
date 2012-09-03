@@ -33,7 +33,7 @@ $objDB = new PDO($strDSN, DB_USER, DB_PASS);
  */
 function __autoload($strClassName)
 {
-	$strFileName = "..sys/class/class." . $strClassName . ".inc.php";
+	$strFileName = "../sys/class/class." . strtolower($strClassName) . ".inc.php";
 	if ( file_exists($strFileName) )
 	{
 		include_once $strFileName;

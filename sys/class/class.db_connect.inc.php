@@ -10,7 +10,7 @@ class DB_Connect
 	 *
 	 * @var object: объект базы данных
 	 */
-	protected $objDB;
+	protected $_objDB;
 	
 	/**
 	 * Проверить наличие объекта БД, а в случает его отсутствия
@@ -22,7 +22,7 @@ class DB_Connect
 	{
 		if ( is_object($dbo) )
 		{
-			$this->$objDB = $dbo;
+			$this->_objDB = $dbo;
 		}
 		else
 		{
@@ -31,7 +31,7 @@ class DB_Connect
 			$strDSN = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME;
 			try
 			{
-				$this->objDB = new PDO($strDSN, DB_USER, DB_PASS);
+				$this->_objDB = new PDO($strDSN, DB_USER, DB_PASS);
 			}
 			catch ( Exception $e )
 			{
@@ -42,4 +42,5 @@ class DB_Connect
 		}
 	}
 }
+
 ?>

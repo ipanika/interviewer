@@ -5,7 +5,16 @@
  */
 include_once '../sys/core/init.inc.php';
 
-//загрузить необходимые объекты
+/*
+ * Загрузить объект стартовой страницы
+ */
+$objNav = new Navigator($objDB);
+
+if ( is_object($objNav) )
+{
+	echo "<pre>", var_dump($objNav), "</pre>";
+}
+
 
 /*
  * Задать название страницы и файлы CSS
