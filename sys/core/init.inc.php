@@ -37,6 +37,7 @@ foreach ( $C as $name => $val )
  */
 $strDSN = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME;
 $objDB = new PDO($strDSN, DB_USER, DB_PASS);
+$objDB->exec('SET NAMES utf8');
 
 /*
  * Определить для классов функцию автозагрузки

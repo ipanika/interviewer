@@ -16,6 +16,10 @@ $arrCSSFiles = array('style.css');
  */
 include_once 'assets/common/header.inc.php';
 
+$objTasterManager = new TasterManager();
+
+$objTasterManager->buildTasterList();
+
 /*
  * Отобразить стартовую страницу
  */
@@ -25,8 +29,7 @@ include_once 'assets/common/header.inc.php';
 	<form action="assets/inc/process.inc.php" method="post">
 		<fieldset>
 		<label for="uname">Выберите себя из списка:</label>
-		<input type="text" name="uname"
-			id="uname" value=""/>
+		<?php echo $objTasterManager->buildTasterList()?>
 		<form action="assets/inc/process.inc.php" method="post">
 			<fieldset>
 			<label for="user_registry">Если вас нет в списке, заполните иформацию о себе:</label>

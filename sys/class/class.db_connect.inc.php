@@ -32,6 +32,7 @@ class DB_Connect
 			try
 			{
 				$this->_objDB = new PDO($strDSN, DB_USER, DB_PASS);
+				$this->_objDB->exec('SET NAMES utf8');
 			}
 			catch ( Exception $e )
 			{

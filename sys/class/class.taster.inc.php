@@ -3,14 +3,14 @@
 /**
  * Хранит информацию о дегустаторе 
  */
-class Taster extends DВ_Connect
+class Taster
 {
 	/**
 	 * Идентификатор дегустатора
 	 * 
 	 * @var int
 	 */
-	public $id
+	public $id;
 	
 	/**
 	 * Определяет фамилию дегустатора
@@ -35,15 +35,18 @@ class Taster extends DВ_Connect
 	 
 	/**
 	 * Принимает массив данных о дегустаторе и сохраняет его
+	 *
+	 * @param array $arrTaster
+	 * @return void
 	 */
 	public function __construct($arrTaster)
 	{
 		if ( is_array($arrTaster) )
 		{
 			$this->id = $arrTaster['taster_id'];
-			$this->surname = $arrTester['taster_surname'];
-			$this->name = $arrTester['taster_name'];
-			$this->sex = $arrTester['taster_sex'];
+			$this->surname = $arrTaster['taster_surname'];
+			$this->name = $arrTaster['taster_name'];
+			$this->sex = $arrTaster['taster_sex'];
 		}
 		else
 		{

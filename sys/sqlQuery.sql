@@ -77,8 +77,9 @@ CREATE TABLE IF NOT EXISTS `interviewer`.`interview_product` (
 /*таблица для хранения данных о дегустаторе*/
 CREATE TABLE IF NOT EXISTS `interviewer`.`tasters` (
 	`taster_id`		INT(11) NOT NULL AUTO_INCREMENT,
-	`taster_family`	VARCHAR(80),
+	`taster_surname`	VARCHAR(80),
 	`taster_name`	VARCHAR(80),
+	`taster_sex`	CHAR(1),
 	
 	PRIMARY KEY (`taster_id`)
 ) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;# MySQL returned an empty result set (i.e. zero rows).
@@ -228,7 +229,7 @@ INSERT INTO `interviewer`.`interview_product`
 
 /*таблица для хранения данных о дегустаторе*/
 INSERT INTO `interviewer`.`tasters` 
-	( `taster_family`, `taster_name` ) VALUES
-	( 'Иванов', 'Сергей'),
-	('Петров','Василий');
+	( `taster_surname`, `taster_name`, `taster_sex` ) VALUES
+	( 'Иванов', 'Сергей', 'М'),
+	('Петров','Василий', 'М');
 	
