@@ -6,6 +6,20 @@
  */
 
 /*
+ * Запуск сеанса
+ */ 
+session_start();
+
+/*
+ * Сгенерировать маркер защиты от CSRF, если это не было 
+ * сделано ранее
+ */
+if ( !isset($_SESSION['token']))
+{
+	$_SESSION['token'] = sha1(uniqid(mt_rand(), TRUE));
+}
+ 
+/*
  * Включить необходимую конфигурационную информацию
  */ 
 include_once '../sys/config/db-cred.inc.php';
