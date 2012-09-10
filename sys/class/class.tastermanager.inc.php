@@ -44,7 +44,7 @@ class TasterManager extends DB_Connect
 		 * Создать HTML-разметку выпадающего списка дегустаторов
 		 */
 		$html = "<select name=\"taster_id\">\n\r";
-		$html .= "<option disabled>Выберите себя из списка</option>\n\r";
+		$html .= "<option disabled selected>Выберите себя из списка</option>\n\r";
 		foreach ( $arrTasters as $objTaster )
 		{
 			$html .= "<option value=\"$objTaster->id\">$objTaster->surname $objTaster->name</option>\n\r";
@@ -186,7 +186,7 @@ FORM_MARKUP;
 			$strQuery = "INSERT INTO `tasters`
 							(`taster_surname`, `taster_name`,`taster_sex`)
 						VALUES
-							(:surname, :name, :sex";
+							(:surname, :name, :sex)";
 		}
 		/*
 		 * Обновить информацию о дегустаторе, если она редактировалась
