@@ -18,8 +18,6 @@ include_once 'assets/common/header.inc.php';
 
 $objTasterManager = new TasterManager();
 
-$objTasterManager->buildTasterList();
-
 /*
  * Отобразить стартовую страницу
  */
@@ -39,15 +37,17 @@ $objTasterManager->buildTasterList();
 		</fieldset>
 	</form>
 	<form action="adminTaster.php" method="post">
-			<fieldset>
-			<label for="user_registry">Если вас нет в списке, заполните иформацию о себе:</label>
-			<input type="submit" name="user_registry" value="О себе"/>
-			</fieldset>
+		<fieldset>
+		<label for="user_registry">Если вас нет в списке, заполните иформацию о себе:</label>
+		<input type="submit" name="user_registry" value="О себе"/>
+		</fieldset>
 	</form>
 </div><!-- end #content -->
+
 <?php
 
 /*
  * Включить завершающую часть страницы
  */
 include_once 'assets/common/footer.inc.php';
+?>
