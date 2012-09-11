@@ -18,13 +18,11 @@ include_once 'assets/common/header.inc.php';
 
 //отобразить разметку для блока вопросов
 //$objTasterManager = new TasterManager();
-
-/*
- * Отобразить стартовую страницу
- */
+$objInterview = new Interview(M_PROFIL,$objDB);
 ?>
 
 <div id="content">
+<?php echo $objInterview->nextCluster()?>
 </div><!-- end #content -->
 
 <?php
