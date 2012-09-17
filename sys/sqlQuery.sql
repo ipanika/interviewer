@@ -233,3 +233,31 @@ INSERT INTO `interviewer`.`tasters`
 	( 'Иванов', 'Сергей', 'М'),
 	('Петров','Василий', 'М');
 	
+	
+/* таблица для хранения данных о текущем опросе*/
+CREATE TABLE IF NOT EXISTS `interviewer`.`current_interviews` (
+	`current_interview_id`		INT(11) NOT NULL AUTO_INCREMENT,
+	`current_interview_date`	DATETIME,
+	`interview_id`				INT(11),
+	
+	PRIMARY KEY (`current_interview_id`),
+	FOREIGN KEY (`interview_id`) REFERENCES interviews(`interview_id`)
+) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+
+INSERT INTO `interviewer`.`current_interviews`
+	( `current_interview_date`, `interview_id` ) VALUES
+	( '2012-09-17 8:26:00', 1 );
+	
+/*
+ текущий опрос в системе
+*/
+SELECT * /*`interviews`.`interview_type`*/
+FROM `interviews`
+WHERE `interviews`.`interview_id`
+IN (
+
+SELECT `current_interviews`.`interview_id`
+FROM `current_interviews`
+ORDER BY `current_interviews`.`current_interview_date` DESC
+)
+LIMIT 1;

@@ -210,6 +210,7 @@ FORM_MARKUP;
 		 */
 		try
 		{
+			echo $strQuery;
 			$stmt = $this->_objDB->prepare($strQuery);
 			$stmt->bindParam(":surname", $strSurname, PDO::PARAM_STR);
 			$stmt->bindParam(":name", $strName, PDO::PARAM_STR);
@@ -304,8 +305,38 @@ FORM_MARKUP;
 		return $arrObjTasters;
 	}
 	
-	private function _loadTasterById($id)
+	/**
+	 * Возвращает объект дегустатора
+	 *
+	 * @param int $id: идентификатор дегустатора
+	 * @return object: объект дегустатора
+	 */
+	public function getTasterById($id)
 	{
+		/*
+		 * Если идентификатор не передан, возвратить NULL
+		 */
+		if ( empty($id) )
+		{
+			return NULL;
+		}
+		
+		/*
+		 * Загрузить данные о дегустаторе в массив
+		 */
+		$arrTaster = $this->_loadTasterData($id);
+		
+		/*
+		 * Возвратить объект дегустатора
+		 */
+		if ( isset($arrTaster[0]) )
+		{
+			return new Taster($arrTaster[0]);
+		}
+		else
+		{
+			return NULL;
+		}
 	}
 }
  

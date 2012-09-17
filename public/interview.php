@@ -1,24 +1,29 @@
-<?php
+ï»¿<?php
 
 /*
- * Âêëþ÷èòü íåîáõîäèìûå ôàéëû, âûïîëíèòü èíèöèàëèçàöèþ ïðèëîæåíèÿ
+ * Ð’ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÑŒ Ð½ÐµÐ¾Ð±Ñ…Ð¾Ð´Ð¸Ð¼Ñ‹Ðµ Ñ„Ð°Ð¹Ð»Ñ‹, Ð²Ñ‹Ð¿Ð¾Ð»Ð½Ð¸Ñ‚ÑŒ Ð¸Ð½Ð¸Ñ†Ð¸Ð°Ð»Ð¸Ð·Ð°Ñ†Ð¸ÑŽ Ð¿Ñ€Ð¸Ð»Ð¾Ð¶ÐµÐ½Ð¸Ñ
  */
 include_once '../sys/core/init.inc.php';
 
 /*
- * Çàäàòü íàçâàíèå ñòðàíèöû è ôàéëû CSS
+ * Ð—Ð°Ð´Ð°Ñ‚ÑŒ Ð½Ð°Ð·Ð²Ð°Ð½Ð¸Ðµ ÑÑ‚Ñ€Ð°Ð½Ð¸Ñ†Ñ‹ Ð¸ Ñ„Ð°Ð¹Ð»Ñ‹ CSS
  */
 $strPageTitle = "";
 $arrCSSFiles = array('style.css', 'admin.css');
 
 /*
- * Âêëþ÷èòü íà÷àëüíóþ ÷àñòü ñòðàíèöû
+ * Ð’ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÑŒ Ð½Ð°Ñ‡Ð°Ð»ÑŒÐ½ÑƒÑŽ Ñ‡Ð°ÑÑ‚ÑŒ ÑÑ‚Ñ€Ð°Ð½Ð¸Ñ†Ñ‹
  */
 include_once 'assets/common/header.inc.php';
 
-//îòîáðàçèòü ðàçìåòêó äëÿ áëîêà âîïðîñîâ
-//$objTasterManager = new TasterManager();
-$objInterview = new Interview(M_PROFIL,$objDB);
+/*
+ * ÐŸÐ¾Ð»ÑƒÑ‡Ð¸Ñ‚ÑŒ Ð¸Ð· ÑÐµÐ°Ð½ÑÐ° Ð²Ð¸Ð´ Ñ‚ÐµÐºÑƒÑ‰ÐµÐ³Ð¾ Ð¾Ð¿Ñ€Ð¾ÑÐ°
+ */
+ 
+ 
+ 
+$objInterview = new Interview($objDB, M_PROFIL);
+
 ?>
 
 <div id="content">
@@ -28,7 +33,7 @@ $objInterview = new Interview(M_PROFIL,$objDB);
 <?php
 
 /*
- * Âêëþ÷èòü çàâåðøàþùóþ ÷àñòü ñòðàíèöû
+ * Ð’ÐºÐ»ÑŽÑ‡Ð¸Ñ‚ÑŒ Ð·Ð°Ð²ÐµÑ€ÑˆÐ°ÑŽÑ‰ÑƒÑŽ Ñ‡Ð°ÑÑ‚ÑŒ ÑÑ‚Ñ€Ð°Ð½Ð¸Ñ†Ñ‹
  */
 include_once 'assets/common/footer.inc.php';
 ?>

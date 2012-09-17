@@ -28,9 +28,10 @@ $objTasterManager = new TasterManager();
 		<fieldset>
 		<label for="uname">Выберите себя из списка:</label>
 		<?php echo $objTasterManager->buildTasterList()?>
-		
 		<input type="hidden" name="action"
 			value="start_interview"/>
+		<input type="hidden" name="token"
+			value="<?php echo $_SESSION['token'];?>"/>
 		<input type="submit" name="start_submit" 
 			value="Начать опрос"/>
 		<a href="">Войти в систему как администратор</a>

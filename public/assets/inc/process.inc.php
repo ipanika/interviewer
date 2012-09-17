@@ -26,6 +26,11 @@ $arrActions = array(
 			'object'=> 'TasterManager',
 			'method'=> 'processTasterForm',
 			'header'=> 'Location: ../../'
+		),
+		'start_interview' => array(
+			'object' => 'Interview',
+			'method' => 'processStartInterview',
+			'header' => 'Location: ../../interview.php'
 		)
 	);
 
@@ -37,7 +42,7 @@ if ( $_POST['token'] == $_SESSION['token']
 		&& isset($arrActions[$_POST['action']]) )
 {
 	$useAction = $arrActions[$_POST['action']];
-	$obj = new $useAction['object']($dbo);
+	$obj = new $useAction['object']();
 	if ( TRUE === $msg=$obj->$useAction['method']() )
 	{
 		header($useAction['header']);
