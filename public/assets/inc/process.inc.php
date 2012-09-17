@@ -31,6 +31,11 @@ $arrActions = array(
 			'object' => 'Interview',
 			'method' => 'processStartInterview',
 			'header' => 'Location: ../../interview.php'
+		),
+		'write_cluster' => array(
+			'object' => 'Interview',
+			'method' => 'processClusterForm',
+			'header' => 'Location: ../../interview.php'
 		)
 	);
 

@@ -22,7 +22,7 @@ class Interview extends DB_Connect
 	 * @param object $dbo: объект базы данных
 	 * @return void
 	 */
-	public function __construct($dbo=NULL, $type=NULL)
+	public function __construct($dbo=NULL)
 	{
 		/**
 		 * Вызвать конструктор родительского класса для проверки
@@ -33,16 +33,9 @@ class Interview extends DB_Connect
 		/*
 		 * Установить вид дегустационного листа
 		 */
-		if ( !empty($type) )
+		if ( isset($_SESSION['interview_type']) )
 		{
-			if ( $type >= M_TRIANG && $type <=M_CONSUM )
-			{
-				$this->_type = $type;
-			}
-			else
-			{
-				die ("Неверно задан тип дегустационного листа!");
-			}
+			$this->_type = $_SESSION['interview_type'];
 		}
 	}
 	
@@ -56,36 +49,137 @@ class Interview extends DB_Connect
 		/*
 		 * Получаем имя и фамилию дегустатора и текущую дату
 		 */
-		//$strTasterName = $this->_curTasterName();
+		$strTasterName = $this->_curTasterName();
 		
-//случай профильного, потребительского и комплексного опросов
-		/*
-		 * Определяем есть ли еще блоки вопросов в дегустационном листе
-		 */
-		$arrProduct = $this->_nextProduct(4);//$idProd);
-		if ( empty($arrProduct) )
+		if ( $this->_type == M_TRIANG )
 		{
-			//возвращаем разметку с благодарностью и кнопкой закончить опрос
-			echo "lksd";
-			return;
+			//генерируем разметку для метода треугольника
+		}
+		else
+		{
+			/*
+			 * Определяем есть ли еще блоки вопросов в дегустационном листе
+			 */
+			//для этого определяем текущий продукт
+			$idProd = isset($_SESSION['product_id']) ? $_SESSION['product_id'] : NULL;
+			$arrProduct = $this->_nextProduct($idProd);
+			
+			if ( empty($arrProduct) )
+			{
+				//возвращаем разметку с благодарностью и кнопкой закончить опрос
+				//завершаем сессию
+				session_destroy();
+				return <<<GOOD_BYE
+				<form action="assets/inc/process.inc.php" method="post">
+				
+					<input type="submit" value="Закончить опрос" />
+				</form>
+GOOD_BYE;
+			}
+			//сохраняем следующий продукт как текущий
+			$_SESSION['product_id'] = $arrProduct['product_id'];
+			
+			$strCluster = "";
+			switch ($this->_type)
+			{
+				case M_PROFIL:
+					$strCluster = $this->_getClusterProfil();
+					break;
+				case M_COMPLX:
+					break;
+				case M_CONSUM:
+					break;
+			} 
+			
+			return <<<FORM_MARKUP
+	<form action="assets/inc/process.inc.php" method="post">
+		<legend>$arrProduct[product_name]</legend>
+		<input type="hidden" name="product_id" value="$arrProduct[product_id]" />
+		$strCluster<br>
+		<label>$strTasterName</label>
+		<input type="hidden" name="action" value="write_cluster" />
+		<input type="hidden" name="token" value="$_SESSION[token]" />
+		<input type="submit" name="cluster_submit" value="Далее" />
+	</form>
+FORM_MARKUP;
+		}	
+	}
+	
+	/**
+	 * Возвращает разметку для блока вопросов составленных по профильному методу
+	 *
+	 * @return string: HTML-разметка
+	 */
+	private function _getClusterProfil()
+	{
+		/*
+		 * Получаем идентификатор текущего опроса
+		 */
+		$idInterview = (int)$_SESSION['interview_id'];
+		
+		$strQuery = "SELECT
+						`questions`.`question_id`,
+						`questions`.`question_text`,
+						`responseoptions`.`responseoption_id`,
+						`responseoptions`.`responseoption_text`
+					FROM `questions`
+					LEFT JOIN `interviews` 
+						ON `interviews`.`cluster_id` = `questions`.`cluster_id`
+					LEFT JOIN `responseoptions` 
+						ON `questions`.`question_id` = `responseoptions`.`question_id`
+					WHERE `interviews`.`interview_id`= $idInterview
+					ORDER BY 
+						`questions`.`question_id`, 
+						`responseoptions`.`responseoption_id`";
+		
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+		}
+		catch (Exception $e)
+		{
+			die ($e->getMessage() );
 		}
 		
-		print_r($arrProduct);
-		
 		/*
-		 * Строим разметку в зависимости от типа дегустационного листа
+		 * Формируем шапку таблицы
 		 */
-		switch ($this->_type)
+		$strTable = "<table border=\"1\">
+			<tr>
+				<td >№</td>
+				<td>Показатели</td>
+				<td>Шкала оценки</td>
+				<td>Комментарии</td>
+			</tr>\n";
+		/*
+		 * Формируем строки таблицы с вопросами и вариантами ответов
+		 */
+		$curQuest = NULL;
+		$i = 0;
+		foreach ($results as $quest )
 		{
-			case M_TRIANG:
-				break;
-			case M_PROFIL:
-				break;
-			case M_COMPLX:
-				break;
-			case M_CONSUM:
-				break;
+		 	if ( $curQuest !== $quest['question_id'] )
+			{
+				//закрываем строку таблицы
+				if ($curQuest != NULL )
+				{
+					$strTable .= "\n\t\t</td>\n\t\t<td><textarea name=\"comment$curQuest\"></textarea></td>\n\t</tr>";
+				}
+				$i++;
+				$curQuest = $quest['question_id'];
+				$strTable .= "\n\t<tr>\n\t\t<td>$i</td>\n\t\t<td>$quest[question_text]</td>\n\t\t<td>";
+			}
+			$strTable .= "\n\t\t\t<input type=\"radio\" name=\"quest$quest[question_id]\" 
+					value=\"$quest[responseoption_id]\">$quest[responseoption_text]<br>";
 		}
+		/*
+		 * Закрываем таблицу
+		 */
+		$strTable .= "\n\t\t</td>\n\t\t<td><textarea name=\"comment$curQuest\"></textarea></td>\n\t</tr>\n</table>\n";
+		return $strTable;
 	}
 	
 	/**
@@ -96,20 +190,34 @@ class Interview extends DB_Connect
 	 * @return mixed: NULL - в случае отсутствия следующего образца продукции 
 	 * для данной анкеты и array ассоциативный массив если образец существует
 	 */
-	private function _nextProduct($id)
+	private function _nextProduct($id=NULL)
 	{
-		$strQuery = "SELECT
-						`product_id`, 
-						`product_name`
-					FROM `products` 
-					WHERE `product_id` > :id
-					LIMIT 1";
+		$idInterview = $_SESSION['interview_id'];
+		$strQuery = "SELECT 
+						`interview_product`.`interview_product_id` AS `product_id`,
+						`products`.`product_name`
+					FROM `products`
+					LEFT JOIN `interview_product` ON `products`.`product_id` = `interview_product`.`product_id`";
+		//если передан идентификатор добавляем условие 
+		if ( !empty($id))
+		{
+			$strQuery .= " WHERE `interview_product`.`interview_product_id` >$id
+									AND `interview_product`.`interview_id` = $idInterview"; 
+		}
+		else
+		{
+			$strQuery .= " WHERE `interview_product`.`interview_id` = $idInterview";
+		}
 		
+		$strQuery .= " LIMIT 1";
 		
 		try
 		{
 			$stmt = $this->_objDB->prepare($strQuery);
-			$stmt->bindParam(":id", $id, PDO::PARAM_INT);
+			if ( !empty($id) )
+			{
+				$stmt->bindParam(":id", $id, PDO::PARAM_INT);
+			}
 			$stmt->execute();
 			$result = $stmt->fetchAll(PDO::FETCH_ASSOC);
 			$stmt->closeCursor();
@@ -132,10 +240,22 @@ class Interview extends DB_Connect
 		/*
 		 * Получаем имя и фамилию текущего администратора из сессии
 		 */
-		$strSurname = $_SESION['surname'];
-		$strName = $_SESSION['name'];
+		$strSurname = $_SESSION['taster_surname'];
+		$strName = $_SESSION['taster_name'];
 		
 		return $strSurname . " " . $strName;
+	}
+	
+	/**
+	 * Сохраняет в базе данных ответы которые дал дегустатор на последний 
+	 * предложенный блок вопросов
+	 *
+	 * @return mixed: TRUE в случае успешного завершения или 
+	 * сообщение об ошибке в случае сбоя
+	 */
+	public function processClusterForm()
+	{
+		return TRUE;
 	}
 	
 	
@@ -204,7 +324,7 @@ class Interview extends DB_Connect
 		 * Создать разметку
 		 */
 		return <<<FORM_MARKUP
-	<form action="assets/inc/process.inc.php" method="post"
+	<form action="assets/inc/process.inc.php" method="post">
 		<fieldset>
 			<label for="taster_surname">Фамилия</label>
 			<input type="text" name="taster_surname" 
@@ -223,7 +343,6 @@ class Interview extends DB_Connect
 	</form>
 FORM_MARKUP;
 	}
-	
 	
 	/**
 	 * Сохраняет в сеансе данные о виде текущего опроса,
@@ -254,15 +373,17 @@ FORM_MARKUP;
 		/*
 		 * Получаем вид текущего опроса, его идентификатор
 		 */
-		 
+		$arrInterview = $this->_getCurInterview();	
+		
 		/*
 		 * Сохраняем данные в сеансе
 		 */
 		$_SESSION['taster_id'] = $objCurTaster->id;
 		$_SESSION['taster_name'] = $objCurTaster->name;
 		$_SESSION['taster_surname'] = $objCurTaster->surname;
+		$_SESSION['interview_id'] = $arrInterview['interview_id'];
+		$_SESSION['interview_type'] = $arrInterview['interview_type'];
 		
-		$arrInterview = $this->_getCurInterview();
 		return TRUE;
 	}
 	
@@ -273,126 +394,26 @@ FORM_MARKUP;
 	 */
 	private function _getCurInterview()
 	{
-	}
-	
-	/**
-	 *
-	 */
-	 
-	
-	 
-	/**
-	 * Предназначен для проверки формы и сохранения или редактирования
-	 * данных о дегустаторе
-	 *
-	 * @return mixed: TRUE в случае успешного завершения или 
-	 * сообщение об ошибке в случае сбоя
-	 */
-	public function processTasterForm()
-	{
-		/*
-		 * Выход, если значение "action" задано неправильно
-		 */
-		if ($_POST['action'] !== 'taster_edit' )
-		{
-			return "Некорректная попытка вызова метода processTasterForm";
-		}
-		
-		/*
-		 * извлечь данные из формы
-		 */
-		$strSurname = htmlentities($_POST['taster_surname'], ENT_QUOTES);
-		$strName = htmlentities($_POST['taster_name'], ENT_QUOTES);
-		$strSex = htmlentities($_POST['taster_sex'], ENT_QUOTES);
-		
-		/*
-		 * Если id не был передан, созадать нового дегустатора в системе
-		 */
-		if ( empty($_POST['taster_id']) )
-		{
-			$strQuery = "INSERT INTO `tasters`
-							(`taster_surname`, `taster_name`,`taster_sex`)
-						VALUES
-							(:surname, :name, :sex)";
-		}
-		/*
-		 * Обновить информацию о дегустаторе, если она редактировалась
-		 */
-		else
-		{
-			// Привести id дегустатора к целочисленному типу в интересах
-			// безопасности
-			$id = (int) $_POST['taster_id'];
-			$strQuery = "UPDATE `tasters`
-						SET
-							`taster_surname`=:surname,
-							`taster_name`=:name,
-							`taster_sex`=:sex
-						WHERE `taster_id`=$id";
-		}
-		
-		/*
-		 * После привязки данных выполнить запрос создания или 
-		 * редактирования информации о дегустаторе
-		 */
+		$strQuery = "SELECT 
+						`interviews`.`interview_type`,
+						`interviews`.`interview_id`
+					FROM `interviews`
+					WHERE `interviews`.`interview_id`
+					IN (
+						SELECT `current_interviews`.`interview_id`
+						FROM `current_interviews`
+						ORDER BY `current_interviews`.`current_interview_date` DESC
+					)
+					LIMIT 1";
+						
 		try
 		{
 			$stmt = $this->_objDB->prepare($strQuery);
-			$stmt->bindParam(":surname", $strSurname, PDO::PARAM_STR);
-			$stmt->bindParam(":name", $strName, PDO::PARAM_STR);
-			$stmt->bindParam(":sex", $strSex, PDO::PARAM_STR);
-			$stmt->execute();
-			$stmt->closeCursor();
-			return true;
-		}
-		catch (Exception $e)
-		{
-			return $e->getMessage();
-		}
-	}
-	
-	/**
-	 * Загружает информацию о пользователе (пользователях) в массив
-	 * 
-	 * @param int $id: необязательный идентификатор (ID),
-	 * используемый для фильтрации результатов
-	 * @return array: массив дегустаторов, извлеченных из базы данных
-	 */
-	private function _loadTasterData($id=NULL)
-	{
-		$strQuery = "SELECT
-						`taster_id`,
-						`taster_surname`,
-						`taster_name`,
-						`taster_sex`
-					FROM `tasters`";
-		
-		/*
-		 * Если предоставлен идентификатор дегустатора, добавить предложение
-		 * WHERE, чтобы запрос возвращал только это событие
-		 */
-		if ( !empty($id) )
-		{
-			$strQuery .= "WHERE `taster_id`=:id LIMIT 1";
-		}
-		
-		try
-		{
-			$stmt = $this->_objDB->prepare($strQuery);
-			
-			/*
-			 * Привязать параметр, если был передан идентификатор
-			 */
-			if ( !empty($id) )
-			{
-				$stmt->bindParam(":id", $id, PDO::PARAM_INT);
-			}
-			
 			$stmt->execute();
 			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
 			$stmt->closeCursor();
 			
-			return $arrResults;
+			return $arrResults[0];
 		}
 		catch ( Exception $e )
 		{

@@ -210,7 +210,6 @@ FORM_MARKUP;
 		 */
 		try
 		{
-			echo $strQuery;
 			$stmt = $this->_objDB->prepare($strQuery);
 			$stmt->bindParam(":surname", $strSurname, PDO::PARAM_STR);
 			$stmt->bindParam(":name", $strName, PDO::PARAM_STR);

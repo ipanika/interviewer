@@ -22,7 +22,7 @@ include_once 'assets/common/header.inc.php';
  
  
  
-$objInterview = new Interview($objDB, M_PROFIL);
+$objInterview = new Interview($objDB);
 
 ?>
 
