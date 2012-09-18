@@ -17,11 +17,8 @@ $arrCSSFiles = array('style.css', 'admin.css');
 include_once 'assets/common/header.inc.php';
 
 /*
- * Получить из сеанса вид текущего опроса
+ * Создать объект для работы с опросом
  */
- 
- 
- 
 $objInterview = new Interview($objDB);
 
 ?>

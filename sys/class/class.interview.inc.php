@@ -255,93 +255,78 @@ FORM_MARKUP;
 	 */
 	public function processClusterForm()
 	{
-		return TRUE;
-	}
-	
-	
-	/**
-	 * Генерирует форму, позволяющую редактировать данные о
-	 * дегустаторе или создавать нового в системе.
-	 *
-	 * @return string: HTML-разметка формы для редактирования 
-	 * информации о дегустаторе
-	 */
-	public function displayTasterForm()
-	{
-		/**
-		 * Проведить, был ли передан идентификатор
+		//в зависимость от типа текущего опроса обрабатываем форму
+		
+		/*
+		 * Получить идентификатор дегустатора
 		 */
-		if ( isset($_POST['taster_id']) )
+		$idTaster = (int)$_SESSION['taster_id'];
+		
+		/*
+		 * Получить идентификатор продукта
+		 */
+		$idProd = (int)$_POST['product_id'];
+		
+		/*
+		 * Получить номера вопросов блока
+		 */
+		$idInterview = (int)$_SESSION['interview_id'];
+		$strQuery = "SELECT
+						`questions`.`question_id`
+					FROM `questions`
+					LEFT JOIN `interviews` 
+						ON `interviews`.`cluster_id` = `questions`.`cluster_id`
+					WHERE `interviews`.`interview_id`= $idInterview
+					ORDER BY 
+						`questions`.`question_id`";
+		
+		try
 		{
-			// Принудительно задать целочисленный тип для
-			// обеспечения безопасности данных
-			$id = (int) $_POST['taster_id'];
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrQuestNums = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
 		}
-		else
+		catch (Exception $e)
 		{
-			$id = NULL;
+			die ($e->getMessage() );
 		}
 		
 		/*
-		 * Сгенерировать разметку для выбора пола дегустатора
-		 * по умолчанию установлен мужской пол
+		 * Получить номера ответов которые дал дегустатор и записать их в базу 
 		 */
-		$strSexList = "<select name=\"taster_sex\">
-							<option selected value=\"М\">M</option>
-							<option value=\"Ж\">Ж</option>
-						</select>";
-		
-		/**
-		 * Если был передан ID, загрузить соотвествующую информацию
-		 */
-		if ( !empty($id) )
+		$strQuery = "INSERT INTO `answers`
+							(`taster_id`,
+							 `interview_product_id`,
+							 `responseOption_id`,
+							 `ts`,
+							 `comment`)
+						VALUES
+							(:tasterId, :prodId, :optionId, :ts, :comment)";
+		$stmt = $this->_objDB->prepare($strQuery);
+		foreach ($arrQuestNums as $questNum)
 		{
-			$objTaster = $this->_loadTasterById($id);
-			
-			/**
-			 * Если не был возвращен объект, возвратить NULL 
-			 */
-			if ( !is_object($objTaster) )
+			//получить ответ на текущий вопрос
+			$num = $questNum['question_id'];
+			$ansNum = (int)$_POST['quest'.$num];
+			$comment = htmlentities($_POST['comment'.$num], ENT_QUOTES);
+			try
 			{
-				return NULL;
+				//подставляем параметры в запрос
+				$stmt->bindParam(":tasterId", $idTaster, PDO::PARAM_INT);
+				$stmt->bindParam(":prodId", $idProd, PDO::PARAM_INT);
+				$stmt->bindParam(":optionId", $ansNum, PDO::PARAM_INT);
+				$stmt->bindParam(":ts", date('Y-m-d h:i:s'), PDO::PARAM_STR);
+				$stmt->bindParam(":comment", $comment, PDO::PARAM_STR);
+				$stmt->execute();
+				$stmt->closeCursor();
 			}
-			
-			/*
-			 * Изменить разметку для выбора пола дегустатора
-			 */
-			
-			//если дегустатор, данные которого изменяются мужчина ничего не делаем
-			if (  $objTaster->sex !== "M" )
+			catch (Exception $e)
 			{
-				$strSexList = "<select name=\"taster_sex\">
-								<option value=\"М\">M</option>
-								<option selected value=\"Ж\">Ж</option>
-							</select>";
+				die ($e->getMessage() );
 			}
 		}
-		
-		/**
-		 * Создать разметку
-		 */
-		return <<<FORM_MARKUP
-	<form action="assets/inc/process.inc.php" method="post">
-		<fieldset>
-			<label for="taster_surname">Фамилия</label>
-			<input type="text" name="taster_surname" 
-				id="taster_surmane" value="$objTaster->surname"/>
-			<label for="taster_name">Имя</label>
-			<input type="text" name="taster_name"
-				id="taster_name" value="$objTaster->name"/>
-			<label for="taster_sex">Пол</label>
-			$strSexList
-			<input type="hidden" name="taster_id" value="$objTaster->id"/>
-			<input type="hidden" name="action" value="taster_edit" />
-			<input type="hidden" name="token" value="$_SESSION[token]" />
-			<input type="submit" name="taster_submit" value="Сохранить" />
-			или <a href="./">отмена</a>
-		</fieldset>
-	</form>
-FORM_MARKUP;
+		return TRUE;
 	}
 	
 	/**
@@ -356,19 +341,21 @@ FORM_MARKUP;
 		/*
 		 * Получаем идентификатор дегустатора из формы
 		 */
-		try
+		if ( !isset($_POST['taster_id']) )
 		{
-			$id = (int)$_POST['taster_id'];
-			/*
-			 * Получаем все данные о дегустаторе из базы
-			 */
-			$objTasterManager = new TasterManager($this->_objDB);
-			$objCurTaster = $objTasterManager->getTasterById($id);
+			// пользователь не выбрал себя из списка
+			// отправляем его на главную страницу и завершаем сеанс
+			session_destroy();
+			header('Location: ../../');
+			exit;
 		}
-		catch(Exception $e)
-		{
-			return $e->getMessage();
-		}
+		
+		$id = (int)$_POST['taster_id'];
+		/*
+		 * Получаем все данные о дегустаторе из базы
+		 */
+		$objTasterManager = new TasterManager($this->_objDB);
+		$objCurTaster = $objTasterManager->getTasterById($id);
 		
 		/*
 		 * Получаем вид текущего опроса, его идентификатор

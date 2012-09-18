@@ -92,6 +92,7 @@ CREATE TABLE IF NOT EXISTS `interviewer`.`answers` (
 	`interview_product_id`	INT(11),
 	`responseOption_id`		INT(11),
 	`ts`					DATETIME,
+	`comment`				TEXT,
 	
 	PRIMARY KEY (`answer_id`),
 	FOREIGN KEY (`taster_id`) REFERENCES tasters(`taster_id`),
