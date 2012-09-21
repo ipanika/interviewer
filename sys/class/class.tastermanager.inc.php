@@ -57,7 +57,7 @@ class TasterManager extends DB_Connect
 	 * Генерирует форму, позволяющую редактировать данные о
 	 * дегустаторе или создавать нового в системе.
 	 *
-	 * @return string: HTML-разметка фармы для редактирования 
+	 * @return string: HTML-разметка формы для редактирования 
 	 * информации о дегустаторе
 	 */
 	public function displayTasterForm()
@@ -119,7 +119,7 @@ class TasterManager extends DB_Connect
 		 * Создать разметку
 		 */
 		return <<<FORM_MARKUP
-	<form action="assets/inc/process.inc.php" method="post"
+	<form action="assets/inc/process.inc.php" method="post">
 		<fieldset>
 			<label for="taster_surname">Фамилия</label>
 			<input type="text" name="taster_surname" 
@@ -139,21 +139,6 @@ class TasterManager extends DB_Connect
 FORM_MARKUP;
 	}
 	
-	
-	/**
-	 *
-	 */
-	
-	/**
-	 *
-	 */
-	
-	/**
-	 *
-	 */
-	 
-	
-	 
 	/**
 	 * Предназначен для проверки формы и сохранения или редактирования
 	 * данных о дегустаторе

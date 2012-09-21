@@ -407,6 +407,96 @@ FORM_MARKUP;
 			die ( $e->getMessage() );
 		}
 	}
+	
+	/**
+	 * Генерирует форму, позволяющую редактировать дегустационные листы
+	 *
+	 * @return string: HTML-разметка формы для редактирования дегустационного
+	 * листа
+	 */
+	public function displayInterviewForm()
+	{
+		/*
+		 * Из сеанса получаем данные, о том какие поля уже были заполнены ранее
+		 */
+		print_r($_SESSION);
+		if ( isset($_SESSION['edited_interview']) )
+		{
+			$arrEditedInterview = $_SESSION['edited_interview'];
+			$strInterviewName = $arrEditedInterview['interview_name'];
+			switch ($arrEditedInterview['interview_type'] )
+			{
+				case M_TRIANG:
+					$strInterviewType = "<label>Метод треугольника</label>";
+					break;
+				case M_PROFIL:
+					$strInterviewType = "<label>Профильный метод</label>";
+					break;
+				case M_COMPLX:
+					$strInterviewType = "<label>Метод комплексной оценки</label>";
+					break;
+				case M_CONSUM:
+					$strInterviewType = "<label>Потребительское тестирование</label>";
+					break;
+			}
+			
+			// для профильного метода
+			/*
+			 * Получаем данные был ли выбран существующий блок вопросов 
+			 */
+			 
+		}
+		else
+		{
+			$strInterviewName = "";
+			$strInterviewType = "<select name=\"interview_type\">
+									<option value=\"".M_TRIANG."\">Метод треугольника</option>
+									<option value=\"".M_PROFIL."\">Профильный метод</option>
+									<option value=\"".M_COMPLX."\">Метод комплексной оценки</option>
+									<option value=\"".M_CONSUM."\">Потребительское тестирование</option>
+								</select>";
+		}
+		return <<<FORM_MARKUP
+	<form action="assets/inc/process.inc.php" method="post" >
+		<label for="interview_name">Название дегустационного листа</label>
+		<input type="text" name="interview_name"
+			id="interview_name" value="$strInterviewName"
+		<label>Вариант опроса:</label>
+		$strInterviewType
+		<input type="hidden" name="action" value="new_interview" />
+		<input type="hidden" name="token" value="$_SESSION[token]" />
+		<input type="submit" name="next_submit" value="Продолжить" />
+		<br><a href="./">отмена</a>
+	</form>
+FORM_MARKUP;
+	}
+	
+	/**
+	 * Метод запоминает название и тип вновь создаваемого дегустационного листа
+	 * 
+	 * @return mixed: TRUE в случае успешного завершения или 
+	 * сообщение об ошибке в случае сбоя
+	 */
+	public function processInterviewName()
+	{
+		/*
+		 * Получаем название дегустационного листа и его тип из формы
+		 */
+		$strInterviewName =  htmlentities($_POST['interview_name'], ENT_QUOTES);
+		$intInterviewType = (int) $_POST['interview_type'];
+		
+		$arrEditedInterview = array(
+					'interview_name' => $strInterviewName,
+					'interview_type' => $intInterviewType
+			);
+		echo "sdlkflasdkf";
+		/*
+		 * Сохраняем данные в сеансе
+		 */
+		$_SESSION['edited_interview'] = $arrEditedInterview;
+		
+		return TRUE;
+	}
 }
  
 ?>
