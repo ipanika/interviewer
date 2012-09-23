@@ -41,6 +41,11 @@ $arrActions = array(
 			'object' => 'Interview',
 			'method' => 'processInterviewName',
 			'header' => 'Location: ../../editInterview.php'
+		),
+		'cancel_edit' => array(
+			'object' => 'Interview',
+			'method' => 'processEndEdit',
+			'header' => 'Location: ../../admin.php'
 		)
 	);
 

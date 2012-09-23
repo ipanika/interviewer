@@ -466,9 +466,25 @@ FORM_MARKUP;
 		<input type="hidden" name="action" value="new_interview" />
 		<input type="hidden" name="token" value="$_SESSION[token]" />
 		<input type="submit" name="next_submit" value="Продолжить" />
-		<br><a href="./">отмена</a>
+	</form>
+	<form action="assets/inc/process.inc.php" method="post" >
+		<input type="hidden" name="action" value="cancel_edit" />
+		<input type="hidden" name="token" value="$_SESSION[token]" />
+		<input type="submit" name="cancel_submit" value="Отмена" />
 	</form>
 FORM_MARKUP;
+	}
+	
+	/**
+	 * Метод удаляет из сеанса информацию о редактируемом дегустационном листе
+	 *
+	 * @return mixed: TRUE в случае успешного завершения или 
+	 * сообщение об ошибке в случае сбоя
+	 */
+	public function processEndEdit()
+	{
+		unset($_SESSION['edited_interview']);
+		return TRUE;
 	}
 	
 	/**
@@ -489,7 +505,7 @@ FORM_MARKUP;
 					'interview_name' => $strInterviewName,
 					'interview_type' => $intInterviewType
 			);
-		echo "sdlkflasdkf";
+		
 		/*
 		 * Сохраняем данные в сеансе
 		 */
