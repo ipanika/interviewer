@@ -42,6 +42,11 @@ $arrActions = array(
 			'method' => 'processInterviewName',
 			'header' => 'Location: ../../editInterview.php'
 		),
+		'choice_cluster' => array(
+			'object' => 'Interview',
+			'method' => 'processChoiceCluster',
+			'header' => 'Location: ../../editInterview.php'
+		),
 		'cancel_edit' => array(
 			'object' => 'Interview',
 			'method' => 'processEndEdit',

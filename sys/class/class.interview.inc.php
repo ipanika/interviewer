@@ -416,10 +416,24 @@ FORM_MARKUP;
 	 */
 	public function displayInterviewForm()
 	{
-		/*
-		 * Из сеанса получаем данные, о том какие поля уже были заполнены ранее
-		 */
+		//добавить шапку (название и вид дегустационного листа)
+		$strHeader = $this->_getHeader();
+		//добавить блок вопросов (новый или существующий)
+		$strClusterType = $this->_getClusterType();
+		//добавить список вопросов для существующего
+		$strQuestionList = $this->_getQuestionList();
+		//добавить список продуктов 
 		print_r($_SESSION);
+		
+		$strCmdCancel = <<<CANCEL
+	<form action="assets/inc/process.inc.php" method="post" >
+		<input type="hidden" name="action" value="cancel_edit" />
+		<input type="hidden" name="token" value="$_SESSION[token]" />
+		<input type="submit" name="cancel_submit" value="Отмена" />
+	</form>
+CANCEL;
+		return $strHeader . $strClusterType . $strCmdCancel;
+		
 		if ( isset($_SESSION['edited_interview']) )
 		{
 			$arrEditedInterview = $_SESSION['edited_interview'];
@@ -441,6 +455,26 @@ FORM_MARKUP;
 			}
 			
 			// для профильного метода
+			/*
+			 * Определяем задан ли блок вопросов
+			 */
+			if ( isset($arrEditedInterview['cluster']) )
+			{
+				
+			}
+			else
+			{
+				//блок не задан, поэтому выводим приглашение для выбора
+				$strClusterList = $this->_getClusterList();
+				$strClusterForm = <<<CLUSTER_FORM
+				<form action="assets/inc/process.inc.php" method="post">
+					$strClusterList\n\t
+					<input type="hidden" name="action" value="new_interview" />
+					<input type="hidden" name="token" value="$_SESSION[token]" />
+					<input type="submit" name="next_submit" value="Продолжить" />
+				</form>
+CLUSTER_FORM;
+			}
 			/*
 			 * Получаем данные был ли выбран существующий блок вопросов 
 			 */
@@ -467,6 +501,7 @@ FORM_MARKUP;
 		<input type="hidden" name="token" value="$_SESSION[token]" />
 		<input type="submit" name="next_submit" value="Продолжить" />
 	</form>
+	$strClusterForm
 	<form action="assets/inc/process.inc.php" method="post" >
 		<input type="hidden" name="action" value="cancel_edit" />
 		<input type="hidden" name="token" value="$_SESSION[token]" />
@@ -475,6 +510,256 @@ FORM_MARKUP;
 FORM_MARKUP;
 	}
 	
+	/**
+	 * Метод возвращает разметку для ввода названия нового дегустационного листа
+	 * и выбора вида опроса
+	 *
+	 * @return string: HTML-строка
+	 */
+	private function _getHeader()
+	{
+		/*
+		 * Если в сеансе уже хранятся данные по дегустационному листу
+		 * выводим их без возможности редактировать
+		 */
+		if ( isset($_SESSION['edited_interview']) )
+		{
+			$arrEditedInterview = $_SESSION['edited_interview'];
+			$strInterviewName = $arrEditedInterview['interview_name'];
+			switch ($arrEditedInterview['interview_type'] )
+			{
+				case M_TRIANG:
+					$strInterviewType = "Метод треугольника";
+					break;
+				case M_PROFIL:
+					$strInterviewType = "Профильный метод";
+					break;
+				case M_COMPLX:
+					$strInterviewType = "Метод комплексной оценки";
+					break;
+				case M_CONSUM:
+					$strInterviewType = "Потребительское тестирование";
+					break;
+			}
+			
+			return <<<HEADER_FORM
+<label>Название дегустационного листа:</label>
+<input type="text" name="interview_name"
+			id="interview_name" value="$strInterviewName" readonly/>
+<label>Вариант опроса:</label>
+<input type="text" name="interview_type"
+			id="interview_type" value="$strInterviewType" readonly/>
+HEADER_FORM;
+		}
+		else
+		{
+			$strInterviewType = "<select name=\"interview_type\">
+									<option value=\"".M_TRIANG."\">Метод треугольника</option>
+									<option value=\"".M_PROFIL."\">Профильный метод</option>
+									<option value=\"".M_COMPLX."\">Метод комплексной оценки</option>
+									<option value=\"".M_CONSUM."\">Потребительское тестирование</option>
+								</select>";
+			//выводим форму для ввода данных
+			return <<<HEADER_FORM
+	<form action="assets/inc/process.inc.php" method="post" >
+		<label for="interview_name">Название дегустационного листа</label>
+		<input type="text" name="interview_name"
+			id="interview_name" value="" />
+		<label>Вариант опроса:</label>
+		$strInterviewType
+		<input type="hidden" name="action" value="new_interview" />
+		<input type="hidden" name="token" value="$_SESSION[token]" />
+		<input type="submit" name="next_submit" value="Продолжить" />
+	</form>
+HEADER_FORM;
+		}
+	}
+	
+	/**
+	 * Метод возвращает либо разметку для выбора из существующих блоков вопросов или 
+	 * создания нового блока вопросов, либо название блока выбранного для дегустационного листа
+	 *
+	 * @return string: HTML
+	 */
+	private function _getClusterType()
+	{
+		/*
+		 * Если в сеансе уже хранятся данные по блоку вопросов
+		 * выводим их без возможности редактировать
+		 */
+		if ( isset($_SESSION['edited_interview']) )
+		{
+			$arrEditedInterview = $_SESSION['edited_interview'];
+			if ( isset($arrEditedInterview['cluster']) )
+			{
+				$strClusterName = $arrEditedInterview['cluster']['cluster_name'];
+				return <<<CLUSTER_FORM
+	<label>Блок вопросов:</label>
+	<input type="text" name="cluster_name"
+			id="cluster_name" value="$strClusterName" readonly/>
+CLUSTER_FORM;
+			}
+			else
+			{
+				//блок не задан, поэтому выводим приглашение для выбора
+				$strClusterList = $this->_getClusterList();
+				$strClusterForm = <<<CLUSTER_FORM
+<form action="assets/inc/process.inc.php" method="post">
+	<label>Блок вопросов:</label>
+	$strClusterList\n\t
+	<input type="hidden" name="action" value="choice_cluster" />
+	<input type="hidden" name="token" value="$_SESSION[token]" />
+	<input type="submit" name="next_submit" value="Продолжить" />
+</form>
+<form action="assets/inc/process.inc.php" method="post">
+	<input type="hidden" name="action" value="new_cluster" />
+	<input type="hidden" name="token" value="$_SESSION[token]" />
+	<input type="submit" name="next_submit" value="Новый блок вопросов" />
+</form>
+CLUSTER_FORM;
+				return $strClusterForm;
+			}
+		}
+		else
+		{
+			//в сеансе еще ничего нет о дегустационном листе, поэтому возвращаем 
+			//пустую строку
+			return "";
+		}
+	}
+	
+	/**
+	 * Метод сохраняет информацию о выбранном типе опроса (название и идентификатор)
+	 *
+	 * @return mixed: TRUE в случае успешного завершения или 
+	 * сообщение об ошибке в случае сбоя
+	 */
+	public function processChoiceCluster()
+	{
+		$id = (int)$_POST['cluster_id'];
+		$strQuery = "SELECT 
+						`clusters`.`cluster_name`
+					FROM `clusters`
+					WHERE `clusters`.`cluster_id` = $id";
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+			
+			$arrCluster = array('cluster_id'=>$id, 'cluster_name' => $arrResults[0]['cluster_name']);
+			$_SESSION['edited_interview']['cluster'] = $arrCluster;
+			
+			return TRUE;
+		}
+		catch ( Exception $e )
+		{
+			die ( $e->getMessage() );
+		}
+	}
+	
+	/**
+	 * Метод возвращает разметку для отображения списка вопросов
+	 *
+	 * @return string: HTML-строка
+	 */
+	private function _getQuestionList()
+	{
+		//если в сеансе записан идентификатор блока вопросов, то 
+		// выводим все вопросы блока с вариантами ответов
+		if ( isset($_SESSION['edited_interview']) )
+		{
+			$arrEditedInterview = $_SESSION['edited_interview'];
+			if ( isset($arrEditedInterview['cluster']) )
+			{
+				if ( isset($arrEditedInterview['cluster']['cluster_id'] ) )
+				{
+					$this->_getQuestionListObjByClusterId($arrEditedInterview['cluster']['cluster_id']);
+				$strQuery = "SELECT
+						`questions`.`question_id`,
+						`questions`.`question_text`,
+						`questions`.`question_rate`,
+						`responseoptions`.`responseoption_id`,
+						`responseoptions`.`responseoption_text`
+					FROM `questions`
+					LEFT JOIN `responseoptions` 
+						ON `questions`.`question_id` = `responseoptions`.`question_id`
+					WHERE `questions`.`cluster_id` = ";
+						
+				try
+				{
+					$stmt = $this->_objDB->prepare($strQuery);
+					$stmt->execute();
+					$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+					$stmt->closeCursor();
+			
+					$strClusterList = "<select name=\"cluster_id\">\n\t<option disabled selected>Выберите вид дегустационного листа</option>";
+					foreach($arrResults as $elem )
+					{
+						$strClusterList .= "\n\t<option value=\"$elem[cluster_id]\">$elem[cluster_name]</option>";
+					}
+					$strClusterList .= "\n</select>";
+									
+					return $strClusterList;
+				}
+				catch ( Exception $e )
+				{
+					die ( $e->getMessage() );
+				}
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Метод возвращает массив объектов класса Question принадлежащих блоку 
+	 * вопросов с заданным идентификатором
+	 */
+	private function _getQuestionListObjByClusterId($clusterId)
+	{
+	}
+	/**
+	 * Метод возвращает выпадающий список зарегистрированных в системе блоков 
+	 * вопросов для профильного метода.
+	 * 
+	 * @return string: HTML-разметка выпадающего списка
+	 */
+	private function _getClusterList()
+	{
+		$strQuery = "SELECT DISTINCT 
+						`clusters`.`cluster_id`, 
+						`clusters`.`cluster_name`
+					FROM `clusters`
+					WHERE `clusters`.`cluster_id`
+					IN (
+						SELECT 
+							`interviews`.`cluster_id`
+						FROM `interviews`
+						WHERE `interviews`.`interview_type` = ".M_PROFIL
+					.")";
+						
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+			
+			$strClusterList = "<select name=\"cluster_id\">\n\t<option disabled selected>Выберите вид дегустационного листа</option>";
+			foreach($arrResults as $elem )
+			{
+				$strClusterList .= "\n\t<option value=\"$elem[cluster_id]\">$elem[cluster_name]</option>";
+			}
+			$strClusterList .= "\n</select>";
+									
+			return $strClusterList;
+		}
+		catch ( Exception $e )
+		{
+			die ( $e->getMessage() );
+		}
+	}
 	/**
 	 * Метод удаляет из сеанса информацию о редактируемом дегустационном листе
 	 *
