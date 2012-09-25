@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Хранит информацию о дегустаторе 
+ * Хранит информацию о варианте ответа
  */
 class ResponseOption
 {
@@ -27,30 +27,38 @@ class ResponseOption
 	public $numAns;
 	
 	/**
-	 * Список вариантов ответа
+	 * Номер варианта ответа
 	 *
-	 * @var array: "м" или "ж"
+	 * @var int
 	 */
-	public $sex;
+	public $num;
+	
+	/**
+	 * Указывает правильный вариант ответа 
+	 *
+	 * @var bool
+	 */
+	public $isCorrect;
 	 
 	/**
-	 * Принимает массив данных о дегустаторе и сохраняет его
+	 * Принимает массив данных о варианте ответа и сохраняет его
 	 *
-	 * @param array $arrTaster
+	 * @param array $arrResponseOption
 	 * @return void
 	 */
-	public function __construct($arrTaster)
+	public function __construct($arrResponseOption)
 	{
-		if ( is_array($arrTaster) )
+		if ( is_array($arrResponseOption) )
 		{
-			$this->id = $arrTaster['taster_id'];
-			$this->surname = $arrTaster['taster_surname'];
-			$this->name = $arrTaster['taster_name'];
-			$this->sex = $arrTaster['taster_sex'];
+			$this->id = $arrResponseOption['responseOption_id'];
+			$this->text = $arrResponseOption['responseOption_text'];
+			$this->numAns = $arrResponseOption['responseOption_numAns'];
+			$this->num = $arrResponseOption['responseOption_num'];
+			$this->isCorrect = (bool)$arrResponseOption['responseOption_isCorrect'];
 		}
 		else
 		{
-			throw new Exception("Не были предоставлены данные о дегустаторе.");
+			throw new Exception("Не были предоставлены данные о варианте ответа.");
 		}
 	}
 }
