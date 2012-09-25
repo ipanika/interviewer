@@ -423,6 +423,9 @@ FORM_MARKUP;
 		//добавить список вопросов для существующего
 		$strQuestionList = $this->_getQuestionList();
 		//добавить список продуктов 
+		$strProductList = $this->_getProductList();
+		//добавить кнопку для сохранения дегустационного листа
+		$strCmdSave = $this->_getCmdSave();
 		print_r($_SESSION);
 		
 		$strCmdCancel = <<<CANCEL
@@ -432,7 +435,7 @@ FORM_MARKUP;
 		<input type="submit" name="cancel_submit" value="Отмена" />
 	</form>
 CANCEL;
-		return $strHeader . $strClusterType . $strCmdCancel;
+		return $strHeader . $strClusterType . $strQuestionList . $strProductList . $strCmdCancel;
 		
 		if ( isset($_SESSION['edited_interview']) )
 		{
@@ -508,6 +511,47 @@ CLUSTER_FORM;
 		<input type="submit" name="cancel_submit" value="Отмена" />
 	</form>
 FORM_MARKUP;
+	}
+	
+	/** 
+	 * Метод возвращает HTML-разметку формы для сохранения дегустационного листа
+	 * или пустую строку, если в дегустационный лист еще не добавлен хотя бы один образец
+	 * продукции
+	 *
+	 * @return string
+	 */
+	private function _getCmdSave()
+	{
+		if ( isset($_SESSION['edited_interview']) )
+		{
+			$arrEditedInterview = $_SESSION['edited_interview'];
+			if ( isset($arrEditedInterview['num_products'] )
+			{
+				return <<<CMD_SAVE
+	<form action="assets/inc/process.inc.php" method="post" >
+		<input type="hidden" name="action" value="write_interview" />
+		<input type="hidden" name="token" value="$_SESSION[token]" />
+		<input type="submit" name="cancel_submit" value="Сохранить дегустационный лист" />
+	</form>
+CMD_SAVE;
+			}
+			else
+			{
+				return "";
+			}
+		}
+		return "";
+	}
+	
+	/**
+	 * Метод осуществляет запись в базу данных информации о созданном дегустационном листе
+	 *
+	 * @return mixed: TRUE в случае успешного завершения или 
+	 * сообщение об ошибке в случае сбоя
+	 */
+	public function processInterviewForm()
+	{
+		
 	}
 	
 	/**
@@ -638,7 +682,8 @@ CLUSTER_FORM;
 	{
 		$id = (int)$_POST['cluster_id'];
 		$strQuery = "SELECT 
-						`clusters`.`cluster_name`
+						`clusters`.`cluster_name`,
+						`clusters`.`cluster_numQuestions`
 					FROM `clusters`
 					WHERE `clusters`.`cluster_id` = $id";
 		try
@@ -648,7 +693,10 @@ CLUSTER_FORM;
 			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
 			$stmt->closeCursor();
 			
-			$arrCluster = array('cluster_id'=>$id, 'cluster_name' => $arrResults[0]['cluster_name']);
+			$arrCluster = array(
+						'cluster_id'=>$id, 
+						'cluster_name' => $arrResults[0]['cluster_name'],
+						'cluster_numQuestions'=> $arrResults[0]['cluster_numQuestions']);
 			$_SESSION['edited_interview']['cluster'] = $arrCluster;
 			
 			return TRUE;
@@ -675,38 +723,43 @@ CLUSTER_FORM;
 			{
 				if ( isset($arrEditedInterview['cluster']['cluster_id'] ) )
 				{
-					$this->_getQuestionListObjByClusterId($arrEditedInterview['cluster']['cluster_id']);
-				$strQuery = "SELECT
-						`questions`.`question_id`,
-						`questions`.`question_text`,
-						`questions`.`question_rate`,
-						`responseoptions`.`responseoption_id`,
-						`responseoptions`.`responseoption_text`
-					FROM `questions`
-					LEFT JOIN `responseoptions` 
-						ON `questions`.`question_id` = `responseoptions`.`question_id`
-					WHERE `questions`.`cluster_id` = ";
-						
-				try
-				{
-					$stmt = $this->_objDB->prepare($strQuery);
-					$stmt->execute();
-					$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
-					$stmt->closeCursor();
-			
-					$strClusterList = "<select name=\"cluster_id\">\n\t<option disabled selected>Выберите вид дегустационного листа</option>";
-					foreach($arrResults as $elem )
+					$arrQuestions = $this->_getQuestionListObjByClusterId($arrEditedInterview['cluster']['cluster_id']);
+					
+					/*
+					 * создать разметку для списка вопросов
+					 */
+					$strQuestionsList = "";
+					$i = 1;
+					foreach( $arrQuestions as $question )
 					{
-						$strClusterList .= "\n\t<option value=\"$elem[cluster_id]\">$elem[cluster_name]</option>";
+						$strQuestionsList .=<<<QUESTION_LIST
+							<p>
+							<label>Вопрос №$i</label>
+							<label>Текст вопроса:</label>
+							<input type="text" name="question_text"
+								id="question_text" value="$question->text" readonly/>
+							<label>Вес показателя:</label>
+							<input type="text" name="question_rate"
+								id="question_rate" value="$question->rate" readonly/>
+							<label>Варианты ответа</label>
+QUESTION_LIST;
+						$i++;
+												
+						foreach ( $question->arrResponseOptions as $option )
+						{
+							
+							$strQuestionsList .=<<<OPTION_LIST
+							<label>$option->num. $option->text</label>
+OPTION_LIST;
+						}
+						$strQuestionsList .= "</p>";
 					}
-					$strClusterList .= "\n</select>";
-									
-					return $strClusterList;
+					return $strQuestionsList;
 				}
-				catch ( Exception $e )
+				else
 				{
-					die ( $e->getMessage() );
-				}
+					//блок вопросов еще только редактируется поэтому выводим вопросы,
+					// которые сохранены в сеансе и форму для добавления нового вопроса
 				}
 			}
 		}
@@ -715,10 +768,48 @@ CLUSTER_FORM;
 	/**
 	 * Метод возвращает массив объектов класса Question принадлежащих блоку 
 	 * вопросов с заданным идентификатором
+	 *
+	 * @param int $clusterId
+	 * @return array
 	 */
 	private function _getQuestionListObjByClusterId($clusterId)
 	{
+		$strQuery = "SELECT
+						`questions`.`question_id`,
+						`questions`.`question_text`,
+						`questions`.`question_rate`,
+						`questions`.`question_numAns`
+					FROM `questions`
+					WHERE `questions`.`cluster_id` = $clusterId";
+						
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+				
+			$arrQuestions = array();
+			$i = 0;
+			foreach($arrResults as $elem )
+			{
+				try
+				{
+					$arrQuestions[$i++] = new Question($elem, $this->_objDB);
+				}
+				catch ( Exception $e )
+				{
+					die ($e->getMessage() );
+				}
+			}			
+			return $arrQuestions;
+		}
+		catch ( Exception $e )
+		{
+			die ( $e->getMessage() );
+		}
 	}
+	
 	/**
 	 * Метод возвращает выпадающий список зарегистрированных в системе блоков 
 	 * вопросов для профильного метода.
@@ -770,6 +861,150 @@ CLUSTER_FORM;
 	{
 		unset($_SESSION['edited_interview']);
 		return TRUE;
+	}
+	
+	/**
+	 * Метод возвращает список продуктов уже добавленных в дегустационный лист
+	 * и форму для добавления нового образца 
+	 */
+	private function _getProductList()
+	{
+		//если в сеансе записан хотя бы один вопрос, то выводим 
+		// список уже добавленных продуктов и форму для добавления еще одного.
+		if ( isset($_SESSION['edited_interview']) )
+		{
+			$arrEditedInterview = $_SESSION['edited_interview'];
+			if ( isset($arrEditedInterview['cluster']) )
+			{
+				if ( isset($arrEditedInterview['cluster']['cluster_numQuestions'] ) 
+						&& $arrEditedInterview['cluster']['cluster_numQuestions'] > 0 )
+				{
+					//выводим список уже сохраненных в сеансе продуктов
+					$strProductList = "<p><label>Образцы продукции:</label>";
+					$arrProducts = $arrEditedInterview['products'];
+					$i = 1;
+					foreach($arrProducts as $product)
+					{
+						$strProductList .= "<label>$i. $product[name]</label>";
+						$i++;
+					}
+					
+					//выводим форму для добавления нового продукта
+					$strProductList .= $this->displayProductForm();
+					return $strProductList;
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Генерирует форму, позволяющую редактировать данные об
+	 * образце продукции или создавать новый в системе.
+	 *
+	 * @return string: HTML-разметка формы для редактирования 
+	 * информации об образце продукции
+	 */
+	public function displayProductForm($id=NULL)
+	{
+		if ( !empty($id) )
+		{
+			$objProduct = $this->_loadProductById();
+		}
+		return <<<PRODUCT_FORM
+		<form action="assets/inc/process.inc.php" method="post">
+		<fieldset>
+			<label for="product_name">Название образца продукции:</label>
+			<input type="text" name="product_name" 
+				id="product_name" value="$objProduct->name"/>
+			<input type="hidden" name="product_id" value="$objProduct->id"/>
+			<input type="hidden" name="action" value="product_edit" />
+			<input type="hidden" name="token" value="$_SESSION[token]" />
+			<input type="submit" name="taster_submit" value="Добавить в дегустационный лист" />
+		</fieldset>
+	</form>
+PRODUCT_FORM;
+	}
+	
+	public function processProductForm()
+	{
+		/*
+		 * Выход, если значение "action" задано неправильно
+		 */
+		if ($_POST['action'] !== 'product_edit' )
+		{
+			return "Некорректная попытка вызова метода processProductForm";
+		}
+		
+		/*
+		 * извлечь данные из формы
+		 */
+		$strName = htmlentities($_POST['product_name'], ENT_QUOTES);
+		
+		/*
+		 * Если id не был передан, создать новый образец продукта в системе
+		 */
+		if ( empty($_POST['product_id']) )
+		{
+			$strQuery = "INSERT INTO `products`
+							(`product_name`)
+						VALUES
+							(:name)";
+		}
+		/*
+		 * Обновить информацию об образце, если она редактировалась
+		 */
+		else
+		{
+			// Привести id образца к целочисленному типу в интересах
+			// безопасности
+			$id = (int) $_POST['product_id'];
+			$strQuery = "UPDATE `products`
+						SET
+							`product_name`=:name
+						WHERE `taster_id`=$id";
+		}
+		
+		/*
+		 * После привязки данных выполнить запрос создания или 
+		 * редактирования информации о дегустаторе
+		 */
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->bindParam(":name", $strName, PDO::PARAM_STR);
+			$stmt->execute();
+			$stmt->closeCursor();
+			
+			/*
+			 * после сохранения в базе данных сохранить данные об образце в сеансе
+			 */
+			//сохраняем имя и уникальный идентификатор
+			if ( empty($id) )
+			{
+				//получаем идентификатор только что созданого образца
+				$id = $this->_objDB->lastInsertId();
+			}
+			$arrProduct = array(
+				'name' => $strName,
+				'id' => $id
+			);
+			if ( !isset($_SESSION['edited_interview']['products']) )
+			{
+				$_SESSION['edited_interview']['products'] = array();
+				$_SESSION['edited_interview']['num_products'] = 0;
+			}
+			array_push($_SESSION['edited_interview']['products'], $arrProduct);
+			$_SESSION['edited_interview']['num_products']++;
+			return true;
+		}
+		catch (Exception $e)
+		{
+			return $e->getMessage();
+		}
+	}
+	
+	private function _loadProductById()
+	{
 	}
 	
 	/**

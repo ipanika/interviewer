@@ -42,6 +42,11 @@ $arrActions = array(
 			'method' => 'processInterviewName',
 			'header' => 'Location: ../../editInterview.php'
 		),
+		'product_edit' => array(
+			'object'=> 'Interview',
+			'method'=> 'processProductForm',
+			'header'=> 'Location: ../../editInterview.php'
+		),
 		'choice_cluster' => array(
 			'object' => 'Interview',
 			'method' => 'processChoiceCluster',
@@ -51,7 +56,12 @@ $arrActions = array(
 			'object' => 'Interview',
 			'method' => 'processEndEdit',
 			'header' => 'Location: ../../admin.php'
-		)
+		),
+		'write_interview' => array(
+			'object' => 'Interview',
+			'method' => 'processInterviewForm',
+			'header' => 'Location: ../../admin.php'
+		),
 	);
 
 /*

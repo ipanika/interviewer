@@ -13,6 +13,13 @@ class Question extends DB_Connect
 	public $id;
 	
 	/**
+	 * Текст вопроса
+	 *
+	 * @var string
+	 */
+	public $text;
+	
+	/**
 	 * Вес показателя
 	 * 
 	 * @var real
@@ -31,7 +38,7 @@ class Question extends DB_Connect
 	 *
 	 * @var array
 	 */
-	public $arrResponseOptions
+	public $arrResponseOptions;
 	
 	/**
 	 * Принимает массив данных о вопросе и сохраняет его.
@@ -47,13 +54,14 @@ class Question extends DB_Connect
 		 * Вызвать конструктор родительского класса для проверки
 		 * существования объекта базы данных
 		 */
-		parent::__construct($dbo);
+		parent::__construct($objDB);
 		
 		if ( is_array($arrQuestion) )
 		{
 			$this->id = $arrQuestion['question_id'];
-			$this->surname = $arrQuestion['question_rate'];
-			$this->name = $arrQuestion['question_numAns'];
+			$this->text = $arrQuestion['question_text'];
+			$this->rate = $arrQuestion['question_rate'];
+			$this->numAns = $arrQuestion['question_numAns'];
 			
 			/*
 			 * Получить из базы данных все варианты ответа на данный вопрос
@@ -76,24 +84,24 @@ class Question extends DB_Connect
 				/*
 				 * Созадать новый массив объектов
 				*/
-				$arrResponseOptions = array();
+				$this->arrResponseOptions = array();
 				$i = 0;
 				foreach( $arrResults as $option )
 				{
 					try
 					{
-						$arrResponseOptions[$i++] = new ResponseOption($option);
+						$this->arrResponseOptions[$i++] = new ResponseOption($option);
 					}
 					catch ( Exception $e )
 					{
 						die ($e->getMessage() );
 					}
 				}
-		}
-		catch ( Exception $e )
-		{
-			die ( $e->getMessage() );
-		}
+			}
+			catch ( Exception $e )
+			{
+				die ( $e->getMessage() );
+			}
 		}
 		else
 		{

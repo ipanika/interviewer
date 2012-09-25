@@ -20,13 +20,6 @@ class ResponseOption
 	public $text;
 	
 	/**
-	 * Количество вариантов ответа на вопрос
-	 *
-	 * @var int
-	 */
-	public $numAns;
-	
-	/**
 	 * Номер варианта ответа
 	 *
 	 * @var int
@@ -52,7 +45,6 @@ class ResponseOption
 		{
 			$this->id = $arrResponseOption['responseOption_id'];
 			$this->text = $arrResponseOption['responseOption_text'];
-			$this->numAns = $arrResponseOption['responseOption_numAns'];
 			$this->num = $arrResponseOption['responseOption_num'];
 			$this->isCorrect = (bool)$arrResponseOption['responseOption_isCorrect'];
 		}
