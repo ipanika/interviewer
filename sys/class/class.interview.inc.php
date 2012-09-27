@@ -435,7 +435,7 @@ FORM_MARKUP;
 		<input type="submit" name="cancel_submit" value="Отмена" />
 	</form>
 CANCEL;
-		return $strHeader . $strClusterType . $strQuestionList . $strProductList . $strCmdCancel;
+		return $strHeader . $strClusterType . $strQuestionList . $strProductList . $strCmdCancel . $this->displayQuestionForm(NULL,3);
 		
 		if ( isset($_SESSION['edited_interview']) )
 		{
@@ -525,7 +525,7 @@ FORM_MARKUP;
 		if ( isset($_SESSION['edited_interview']) )
 		{
 			$arrEditedInterview = $_SESSION['edited_interview'];
-			if ( isset($arrEditedInterview['num_products'] )
+			if ( isset($arrEditedInterview['num_products'] ) )
 			{
 				return <<<CMD_SAVE
 	<form action="assets/inc/process.inc.php" method="post" >
@@ -760,9 +760,62 @@ OPTION_LIST;
 				{
 					//блок вопросов еще только редактируется поэтому выводим вопросы,
 					// которые сохранены в сеансе и форму для добавления нового вопроса
+					$strQuestionsList .= displayQuestionForm();
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Генерирует форму, позволяющую редактировать вопрос или создавать новый в системе.
+	 * Один из параметров должен быть задан
+	 *
+	 * @param int: уникальный идентификатор вопроса
+	 * @param int: количество вариантов ответа на вопрос
+	 * @return string: HTML-разметка формы для редактирования 
+	 * вопроса
+	 */
+	public function displayQuestionForm($id=NULL,$numOptions=NULL)
+	{
+		if ( !empty($id) )
+		{
+			$objQuestion = $this->_loadQuestionById();
+			
+			//создаем разметку для вариантов ответа c заполненными полями
+		}
+		else
+		{
+			//создаем разметку для вариантов ответа с незаполненными полями
+			$strOptionsList = "";
+			for ($i = 1; $i<=$numOptions; $i++)
+			{
+				$strOptionsList .=<<<OPTION_FORM
+				<label>$i.</label>
+				<input type="text" name="option$i"
+					id="option$i" value=""/>
+OPTION_FORM;
+			}
+			
+		}
+		
+		return <<<QUESTION_FORM
+		<form action="assets/inc/process.inc.php" method="post">
+		<fieldset>
+			<label for="question_text">Текст вопроса:</label>
+			<input type="text" name="question_text" 
+				id="question_rate" value="$objQuestion->text"/>
+			<label for="question_rate">Вес показателя:</label>
+			<input type="text" name="question_rate" 
+				id="question_rate" value="$objQuestion->rate"/>
+			<label>Варианты ответа:</label>
+			$strOptionsList
+			<input type="hidden" name="product_id" value="$objQuestion->id"/>
+			<input type="hidden" name="action" value="question_edit" />
+			<input type="hidden" name="token" value="$_SESSION[token]" />
+			<input type="submit" name="taster_submit" value="Добавить в дегустационный лист" />
+		</fieldset>
+	</form>
+QUESTION_FORM;
 	}
 	
 	/**
