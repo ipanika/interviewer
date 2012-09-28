@@ -37,6 +37,21 @@ $arrActions = array(
 			'method' => 'processClusterForm',
 			'header' => 'Location: ../../interview.php'
 		),
+		'new_cluster' => array(
+			'object' => 'Interview',
+			'method' => 'processNewClusterForm',
+			'header' => 'Location: ../../editInterview.php'
+		), 
+		'new_cluster_name' => array(
+			'object' => 'Interview',
+			'method' => 'processNewClusterNameForm',
+			'header' => 'Location: ../../editInterview.php'
+		), 
+		'question_edit' => array(
+			'object' => 'Interview',
+			'method' => 'processQuestionForm',
+			'header' => 'Location: ../../editInterview.php'
+		), 
 		'new_interview' => array(
 			'object' => 'Interview',
 			'method' => 'processInterviewName',

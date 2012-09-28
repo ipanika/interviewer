@@ -383,14 +383,12 @@ FORM_MARKUP;
 	{
 		$strQuery = "SELECT 
 						`interviews`.`interview_type`,
-						`interviews`.`interview_id`
+						`interviews`.`interview_id`,
+						`current_interviews`.`current_interview_date` 
 					FROM `interviews`
-					WHERE `interviews`.`interview_id`
-					IN (
-						SELECT `current_interviews`.`interview_id`
-						FROM `current_interviews`
-						ORDER BY `current_interviews`.`current_interview_date` DESC
-					)
+					LEFT JOIN `current_interviews` 
+						ON `interviews`.`interview_id` = `current_interviews`.`interview_id`
+					ORDER BY `current_interviews`.`current_interview_date` DESC
 					LIMIT 1";
 						
 		try
@@ -435,82 +433,8 @@ FORM_MARKUP;
 		<input type="submit" name="cancel_submit" value="Отмена" />
 	</form>
 CANCEL;
-		return $strHeader . $strClusterType . $strQuestionList . $strProductList . $strCmdCancel . $this->displayQuestionForm(NULL,3);
+		return $strHeader . $strClusterType . $strQuestionList . $strProductList . $strCmdCancel . $strCmdSave;
 		
-		if ( isset($_SESSION['edited_interview']) )
-		{
-			$arrEditedInterview = $_SESSION['edited_interview'];
-			$strInterviewName = $arrEditedInterview['interview_name'];
-			switch ($arrEditedInterview['interview_type'] )
-			{
-				case M_TRIANG:
-					$strInterviewType = "<label>Метод треугольника</label>";
-					break;
-				case M_PROFIL:
-					$strInterviewType = "<label>Профильный метод</label>";
-					break;
-				case M_COMPLX:
-					$strInterviewType = "<label>Метод комплексной оценки</label>";
-					break;
-				case M_CONSUM:
-					$strInterviewType = "<label>Потребительское тестирование</label>";
-					break;
-			}
-			
-			// для профильного метода
-			/*
-			 * Определяем задан ли блок вопросов
-			 */
-			if ( isset($arrEditedInterview['cluster']) )
-			{
-				
-			}
-			else
-			{
-				//блок не задан, поэтому выводим приглашение для выбора
-				$strClusterList = $this->_getClusterList();
-				$strClusterForm = <<<CLUSTER_FORM
-				<form action="assets/inc/process.inc.php" method="post">
-					$strClusterList\n\t
-					<input type="hidden" name="action" value="new_interview" />
-					<input type="hidden" name="token" value="$_SESSION[token]" />
-					<input type="submit" name="next_submit" value="Продолжить" />
-				</form>
-CLUSTER_FORM;
-			}
-			/*
-			 * Получаем данные был ли выбран существующий блок вопросов 
-			 */
-			 
-		}
-		else
-		{
-			$strInterviewName = "";
-			$strInterviewType = "<select name=\"interview_type\">
-									<option value=\"".M_TRIANG."\">Метод треугольника</option>
-									<option value=\"".M_PROFIL."\">Профильный метод</option>
-									<option value=\"".M_COMPLX."\">Метод комплексной оценки</option>
-									<option value=\"".M_CONSUM."\">Потребительское тестирование</option>
-								</select>";
-		}
-		return <<<FORM_MARKUP
-	<form action="assets/inc/process.inc.php" method="post" >
-		<label for="interview_name">Название дегустационного листа</label>
-		<input type="text" name="interview_name"
-			id="interview_name" value="$strInterviewName"
-		<label>Вариант опроса:</label>
-		$strInterviewType
-		<input type="hidden" name="action" value="new_interview" />
-		<input type="hidden" name="token" value="$_SESSION[token]" />
-		<input type="submit" name="next_submit" value="Продолжить" />
-	</form>
-	$strClusterForm
-	<form action="assets/inc/process.inc.php" method="post" >
-		<input type="hidden" name="action" value="cancel_edit" />
-		<input type="hidden" name="token" value="$_SESSION[token]" />
-		<input type="submit" name="cancel_submit" value="Отмена" />
-	</form>
-FORM_MARKUP;
 	}
 	
 	/** 
@@ -551,7 +475,86 @@ CMD_SAVE;
 	 */
 	public function processInterviewForm()
 	{
+		$arrEditedInterview = $_SESSION['edited_interview'];
+		//проверяем создавался новый блок вопросов или использовался существующий
+		if (!isset($arrEditedInterview['cluster']['cluster_id']))
+		{
+			//был создан новый блок вопросов - записываем его в базу данных
+			// и получаем его идентификатор
+			$clusterId = 0;
+		}
+		else
+		{
+			//использовался существующий - получаем его идентификатор
+			$clusterId = $arrEditedInterview['cluster']['cluster_id'];
+		}
 		
+		//записываем название дегустационного листа в базу данных
+		//вид опросного листа
+		$type = $arrEditedInterview['interview_type'];
+		$strInterviewName = $arrEditedInterview['interview_name'];
+		
+		$strQuery = "INSERT INTO `interviews`
+							(
+								`interview_name`,
+								`interview_type`,
+								`cluster_id`
+							)
+							VALUES
+							(
+								:name,
+								:type,
+								:cluster_id
+							)";
+		
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->bindParam(":name", $strInterviewName, PDO::PARAM_STR);
+			$stmt->bindParam(":type", $type, PDO::PARAM_INT);
+			$stmt->bindParam(":cluster_id", $clusterId, PDO::PARAM_INT);
+			$stmt->execute();
+			$stmt->closeCursor();
+			
+			//получаем идентификатор созданного опроса
+			$interviewId = $this->_objDB->lastInsertId();
+			echo "interviewId = " . $interviewId;
+			
+		}
+		catch (Exception $e)
+		{
+			return $e->getMessage();
+		}
+		
+		//связываем образцы продукции и опросный лист
+		$strQuery = "INSERT INTO `interview_product`
+							(
+								`interview_id`,
+								`product_id`
+							)
+							VALUES
+							(
+								$interviewId,
+								:productId
+							)";
+		try
+		{
+			$stmt1 = $this->_objDB->prepare($strQuery);
+			
+			foreach($arrEditedInterview['products'] as $product)
+			{
+				print_r($product['id']);
+				$stmt1->bindParam(":productId", $product['id'], PDO::PARAM_INT);
+				$stmt1->execute();
+			}
+			$stmt1->closeCursor();
+		}
+		catch (Exception $e)
+		{
+			return $e->getMessage();
+		}
+		
+		return TRUE;
 	}
 	
 	/**
@@ -633,6 +636,21 @@ HEADER_FORM;
 		 */
 		if ( isset($_SESSION['edited_interview']) )
 		{
+			//если в сеансе отмечено что создается новый блок вопросов
+			//то выводим форму для задания названия блока вопросов
+			if ( isset($_SESSION['edited_interview']['new_cluster']))
+			{
+				return <<<NEW_CLUSTER_FORM
+	<form action="assets/inc/process.inc.php" method="post">
+		<label>Блок вопросов</label>
+		<input type="text" name="cluster_name"
+			id="cluster_name" value="" />
+		<input type="hidden" name="action" value="new_cluster_name" />
+		<input type="hidden" name="token" value="$_SESSION[token]" />
+		<input type="submit" name="next_submit" value="Далее" />
+	</form>
+NEW_CLUSTER_FORM;
+			}
 			$arrEditedInterview = $_SESSION['edited_interview'];
 			if ( isset($arrEditedInterview['cluster']) )
 			{
@@ -658,7 +676,7 @@ CLUSTER_FORM;
 <form action="assets/inc/process.inc.php" method="post">
 	<input type="hidden" name="action" value="new_cluster" />
 	<input type="hidden" name="token" value="$_SESSION[token]" />
-	<input type="submit" name="next_submit" value="Новый блок вопросов" />
+	<input type="submit" name="new_cluster_submit" value="Новый блок вопросов" />
 </form>
 CLUSTER_FORM;
 				return $strClusterForm;
@@ -696,7 +714,7 @@ CLUSTER_FORM;
 			$arrCluster = array(
 						'cluster_id'=>$id, 
 						'cluster_name' => $arrResults[0]['cluster_name'],
-						'cluster_numQuestions'=> $arrResults[0]['cluster_numQuestions']);
+						'num_questions'=> $arrResults[0]['cluster_numQuestions']);
 			$_SESSION['edited_interview']['cluster'] = $arrCluster;
 			
 			return TRUE;
@@ -704,6 +722,57 @@ CLUSTER_FORM;
 		catch ( Exception $e )
 		{
 			die ( $e->getMessage() );
+		}
+	}
+	
+	/** 
+	 * Метод сохраняет информацию в сеансе о том что пользователь выбрал создание нового
+	 * блока вопросов
+	 *
+	 * @return mixed: TRUE в случае успешного завершения или 
+	 * сообщение об ошибке в случае сбоя
+	 */
+	public function processNewClusterForm()
+	{
+		/*
+		 * Выход, если значение "action" задано неправильно
+		 */
+		if ($_POST['action'] !== 'new_cluster' )
+		{
+			return "Некорректная попытка вызова метода processNewClusterForm";
+		}
+		
+		$_SESSION['edited_interview']['new_cluster'] = TRUE;
+		
+		return TRUE;
+	}
+	
+	/** 
+	 * Метод сохраняет в сеансе имя нового блока вопросов
+	 *
+	  * @return mixed: TRUE в случае успешного завершения или 
+	 * сообщение об ошибке в случае сбоя
+	 */
+	public function processNewClusterNameForm()
+	{
+		/*
+		 * Выход, если значение "action" задано неправильно
+		 */
+		if ($_POST['action'] !== 'new_cluster_name' )
+		{
+			return "Некорректная попытка вызова метода processNewClusterNameForm";
+		}
+		if ( isset($_SESSION['edited_interview']['new_cluster']) )
+		{
+			unset($_SESSION['edited_interview']['new_cluster']);
+			
+			$cluster = array(
+				'cluster_name' => htmlentities($_POST['cluster_name'], ENT_QUOTES)
+			);
+			
+			$_SESSION['edited_interview']['cluster'] = $cluster;
+			
+			return TRUE;
 		}
 	}
 	
@@ -760,22 +829,52 @@ OPTION_LIST;
 				{
 					//блок вопросов еще только редактируется поэтому выводим вопросы,
 					// которые сохранены в сеансе и форму для добавления нового вопроса
-					$strQuestionsList .= displayQuestionForm();
+					//определяем количество вопросов уже сохраненных в сеансе
+					$numQuestions =  $arrEditedInterview['cluster']['num_questions'];
+					//и выводим их без возможности редактирования
+					$strQuestionsList = "<p>";
+										
+					for ($i = 1; $i <= $numQuestions; $i++)
+					{
+						$question = $arrEditedInterview['cluster']['questions']['question'.($i-1)];
+						$strQuestionsList .=<<<QUESTION_LIST
+						<label>Вопрос №$i</label>
+						<label>Текст вопроса:</label>
+						<input type="text" name="question_text"
+								id="question_text" value="$question[text]" readonly/>
+						<label>Вес показателя:</label>
+						<input type="text" name="question_rate"
+								id="question_rate" value="$question[rate]" readonly/>
+						<label>Варианты ответа</label>
+QUESTION_LIST;
+						
+						for ($j = 1; $j <= NUM_OF_OPTIONS; $j++)
+						{
+							$option = $question['options']['option'.$j];
+							$strQuestionsList .=<<<OPTION_LIST
+							<label>$j. $option</label>
+OPTION_LIST;
+						}
+					}
+					$strQuestionsList .= "</p>";
+					//добавляем разметку для нового вопрососа
+					$strQuestionsList .= $this->displayQuestionForm();
+					
+					return $strQuestionsList;
 				}
 			}
 		}
 	}
+
 	
 	/**
 	 * Генерирует форму, позволяющую редактировать вопрос или создавать новый в системе.
-	 * Один из параметров должен быть задан
 	 *
 	 * @param int: уникальный идентификатор вопроса
-	 * @param int: количество вариантов ответа на вопрос
 	 * @return string: HTML-разметка формы для редактирования 
 	 * вопроса
 	 */
-	public function displayQuestionForm($id=NULL,$numOptions=NULL)
+	public function displayQuestionForm($id=NULL)
 	{
 		if ( !empty($id) )
 		{
@@ -787,7 +886,7 @@ OPTION_LIST;
 		{
 			//создаем разметку для вариантов ответа с незаполненными полями
 			$strOptionsList = "";
-			for ($i = 1; $i<=$numOptions; $i++)
+			for ($i = 1; $i<=NUM_OF_OPTIONS; $i++)
 			{
 				$strOptionsList .=<<<OPTION_FORM
 				<label>$i.</label>
@@ -816,6 +915,59 @@ OPTION_FORM;
 		</fieldset>
 	</form>
 QUESTION_FORM;
+	}
+	
+	/**
+	 * Метод осуществляет запись в сеанс информацию о новом вопросе
+	 *
+	 * @return mixed: TRUE в случае успешного завершения или 
+	 * сообщение об ошибке в случае сбоя
+	 */
+	public function processQuestionForm()
+	{
+		/*
+		 * Выход, если значение "action" задано неправильно
+		 */
+		if ($_POST['action'] !== 'question_edit' )
+		{
+			return "Некорректная попытка вызова метода processQuestionForm";
+		}
+		
+		/*
+		 * извлечь данные из формы
+		 */
+		$strQuestionText = htmlentities($_POST['question_text'], ENT_QUOTES);
+		$strQuestionRate = htmlentities($_POST['question_rate'], ENT_QUOTES);
+		
+		/*
+		 *извлечь варианты ответа на вопрос из формы
+		 */
+		$options = array();
+		for ($i = 1; $i <= NUM_OF_OPTIONS; $i++)
+		{
+			$options['option'.$i] = htmlentities($_POST['option'.$i], ENT_QUOTES);
+		}
+		
+		$arrQuestion = array(
+			'text' => $strQuestionText,
+			'rate' => $strQuestionRate,
+			'options' => $options
+		);
+		
+		/*
+		 * сохраняем вопрос в сеансе, увеличивая счетчик на единицу
+		 */
+		if ( !isset($_SESSION['edited_interview']['cluster']['questions']) )
+		{
+			$_SESSION['edited_interview']['cluster']['questions'] = array();
+			$_SESSION['edited_interview']['cluster']['num_questions'] = 0;
+		}
+		
+		
+		$num = (int)$_SESSION['edited_interview']['cluster']['num_questions']++;
+		$_SESSION['edited_interview']['cluster']['questions']['question'.$num] = $arrQuestion;
+				
+		return TRUE;
 	}
 	
 	/**
@@ -929,8 +1081,8 @@ QUESTION_FORM;
 			$arrEditedInterview = $_SESSION['edited_interview'];
 			if ( isset($arrEditedInterview['cluster']) )
 			{
-				if ( isset($arrEditedInterview['cluster']['cluster_numQuestions'] ) 
-						&& $arrEditedInterview['cluster']['cluster_numQuestions'] > 0 )
+				if ( isset($arrEditedInterview['cluster']['num_questions'] ) 
+						&& $arrEditedInterview['cluster']['num_questions'] > 0 )
 				{
 					//выводим список уже сохраненных в сеансе продуктов
 					$strProductList = "<p><label>Образцы продукции:</label>";
