@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Хранит информацию о дегустаторе 
+ * Хранит информацию о вопросе
  */
 class Question extends DB_Connect
 {
@@ -48,23 +48,90 @@ class Question extends DB_Connect
 	 * @param object $objDB
 	 * @return void
 	 */
-	public function __construct($arrQuestion, $objDB=NULL)
+	public function __construct($objDB=NULL)
 	{
 		/*
 		 * Вызвать конструктор родительского класса для проверки
 		 * существования объекта базы данных
 		 */
 		parent::__construct($objDB);
+	}
+	
+	/**
+	 * Метод создает объект Вопрос по информации переданной в параметре
+	 *
+	 * @param array: массив содержащий текст вопроса, вес показателя
+	 *					мессив вариантов ответа
+	 * @return object
+	 */
+	static function createQuestion($arrQuestion)
+	{
+		$objQuestion = new self();
 		
-		if ( is_array($arrQuestion) )
+		$objQuestion->text = $arrQuestion['text'];
+		$objQuestion->rate = $arrQuestion['rate'];
+		
+		$objQuestion->arrResponseOptions = array();
+		for($i = 0; $i < NUM_OF_OPTIONS; $i++ )
 		{
-			$this->id = $arrQuestion['question_id'];
-			$this->text = $arrQuestion['question_text'];
-			$this->rate = $arrQuestion['question_rate'];
-			$this->numAns = $arrQuestion['question_numAns'];
+			$option = $arrQuestion['options'][$i];
+			try
+			{
+				$objQuestion->arrResponseOptions[$i++] = new ResponseOption($option);
+			}
+			catch ( Exception $e )
+			{
+				die ($e->getMessage() );
+			}
+		}
+		
+		return $objQuestion;
+	}
+	
+	/**
+	 * Метод возвращает объект Вопрос сохраненный в базе данных
+	 *
+	 * @param int: id
+	 * @param object: объект базы данных
+	 * @return object
+	 */
+	static function getQuestionById($id, $objDB = NULL)
+	{
+		if ( empty($id) )
+		{
+			return NULL;
+		}
+		
+		$objQuestion = new self($objDB);
+		
+		/*
+		 * Получаем данные о вопросе из базы данных
+		 */
+		$strQuery = "SELECT 
+						`question_text`, 
+						`question_rate`  
+					FROM `questions` 
+					WHERE `question_id` = :id
+					LIMIT 1";
+		try
+		{
+			$stmt = $objQuestion->_objDB->prepare($strQuery);
+			$stmt->bindParam(":id", $id, PDO::PARAM_INT);
+			$stmt->execute();
+			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
 			
+			if ( !is_array($arrResults) )
+			{
+				return NULL;
+			}
+			
+			$objQuestion->id = $id;
+			$objQuestion->text = $arrResults[0]['question_text'];
+			$objQuestion->rate = $arrResults[0]['question_rate'];
+		
 			/*
-			 * Получить из базы данных все варианты ответа на данный вопрос
+			 * Получить варианты ответов из базы данных
 			 */
 			$strQuery = "SELECT 
 							`responseoptions`.`responseOption_id`,
@@ -72,25 +139,26 @@ class Question extends DB_Connect
 							`responseoptions`.`responseOption_num`,
 							`responseoptions`.`responseOption_isCorrect`
 						FROM `responseoptions`
-						WHERE `responseoptions`.`question_id` = $this->id";
+						WHERE `responseoptions`.`question_id` = $id";
+			
+			
 			try
 			{
-				$stmt = $this->_objDB->prepare($strQuery);
-			
+				$stmt = $objQuestion->_objDB->prepare($strQuery);
 				$stmt->execute();
 				$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
 				$stmt->closeCursor();
 			
 				/*
 				 * Созадать новый массив объектов
-				*/
-				$this->arrResponseOptions = array();
+				 */
+				$objQuestion->arrResponseOptions = array();
 				$i = 0;
 				foreach( $arrResults as $option )
 				{
 					try
 					{
-						$this->arrResponseOptions[$i++] = new ResponseOption($option);
+						$objQuestion->arrResponseOptions[$i++] = new ResponseOption($option);
 					}
 					catch ( Exception $e )
 					{
@@ -103,10 +171,12 @@ class Question extends DB_Connect
 				die ( $e->getMessage() );
 			}
 		}
-		else
+		catch ( Exception $e )
 		{
-			throw new Exception("Не были предоставлены данные о вопросе.");
+			die ( $e->getMessage() );
 		}
+		
+		return $objQuestion;
 	}
 }
 

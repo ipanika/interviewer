@@ -475,6 +475,7 @@ CMD_SAVE;
 	 */
 	public function processInterviewForm()
 	{
+		print_r($_SESSION);
 		$arrEditedInterview = $_SESSION['edited_interview'];
 		//проверяем создавался новый блок вопросов или использовался существующий
 		if (!isset($arrEditedInterview['cluster']['cluster_id']))
@@ -857,8 +858,10 @@ OPTION_LIST;
 						}
 					}
 					$strQuestionsList .= "</p>";
-					//добавляем разметку для нового вопрососа
-					$strQuestionsList .= $this->displayQuestionForm();
+					//вставляем кнопку для добавления нового вопроса
+					$strQuestionsList .=<<<NEW_QUESTION_BUTTON
+					<a href="editQuestion.php" class="admin">Добавить вопрос в дегустационный лист</a>
+NEW_QUESTION_BUTTON;
 					
 					return $strQuestionsList;
 				}
@@ -868,37 +871,75 @@ OPTION_LIST;
 
 	
 	/**
-	 * Генерирует форму, позволяющую редактировать вопрос или создавать новый в системе.
+	 * Генерирует форму, позволяющую редактировать вопрос или создавать новый в сеансе.
 	 *
-	 * @param int: уникальный идентификатор вопроса
 	 * @return string: HTML-разметка формы для редактирования 
 	 * вопроса
 	 */
-	public function displayQuestionForm($id=NULL)
+	public function displayQuestionForm()
 	{
-		if ( !empty($id) )
+		/*
+		 * Инициализировать переменную, хранящую текст надписи на 
+		 * кнопке отправки формы
+		 */
+		$strSubmit = "Добавить вопрос в дегустационный лист";
+		
+		/*
+		 * Проверить, был ли передан идентификатор вопроса
+		 */
+		if ( isset($_POST['question_id']) )
 		{
-			$objQuestion = $this->_loadQuestionById();
+			$id = (int) $_POST['question_id'];
 			
-			//создаем разметку для вариантов ответа c заполненными полями
+			/*
+			 * Извлекаем объект вопроса из сеансовой переменной
+			 * по переданному идентификатору
+			 */
+			$objQuestion = $_SESSION['edited_interview']['cluster']['questions'][$id];
+			$strQuestionId = "<input type=\"hidden\" name=\"question_id\" value=\"$id\"/>\n\r";
+			
+			$strSubmit = "Сохранить изменения";
 		}
 		else
 		{
-			//создаем разметку для вариантов ответа с незаполненными полями
-			$strOptionsList = "";
-			for ($i = 1; $i<=NUM_OF_OPTIONS; $i++)
+			$id = NULL;
+		}
+		
+		/*
+		 * Создать разметку для вариантов ответа
+		 */
+		$strOptionList = "";
+		$arrOptions = $objQuestion->arrResponseOptions;
+		if (is_array($arrOptions) )
+		{
+			//если вопрос редактируется
+			for ($i = 0; $i<=NUM_OF_OPTIONS; $i++)
 			{
+				$number = $i + 1;
 				$strOptionsList .=<<<OPTION_FORM
-				<label>$i.</label>
+				<label for="option$i">$number.</label>
+				<input type="text" name="option$i"
+					id="option$i" value="$arrOption[$i]->text"/>
+OPTION_FORM;
+			}
+		}
+		else
+		{
+			//если создается новый вопрос
+			for ($i = 0; $i<=NUM_OF_OPTIONS; $i++)
+			{
+				$number = $i + 1;
+				$strOptionsList .=<<<OPTION_FORM
+				<label for="option$i">$number.</label>
 				<input type="text" name="option$i"
 					id="option$i" value=""/>
 OPTION_FORM;
 			}
-			
 		}
-		
+			
 		return <<<QUESTION_FORM
 		<form action="assets/inc/process.inc.php" method="post">
+		<legend>Вопрос №$id</legend>
 		<fieldset>
 			<label for="question_text">Текст вопроса:</label>
 			<input type="text" name="question_text" 
@@ -908,17 +949,18 @@ OPTION_FORM;
 				id="question_rate" value="$objQuestion->rate"/>
 			<label>Варианты ответа:</label>
 			$strOptionsList
-			<input type="hidden" name="product_id" value="$objQuestion->id"/>
+			$strQuestionId
 			<input type="hidden" name="action" value="question_edit" />
 			<input type="hidden" name="token" value="$_SESSION[token]" />
-			<input type="submit" name="taster_submit" value="Добавить в дегустационный лист" />
+			<input type="submit" name="question_submit" value="$strSubmit" />
 		</fieldset>
 	</form>
 QUESTION_FORM;
 	}
 	
 	/**
-	 * Метод осуществляет запись в сеанс информацию о новом вопросе
+	 * Метод осуществляет запись в сеанс информацию о новом или
+	 * измененном вопросе
 	 *
 	 * @return mixed: TRUE в случае успешного завершения или 
 	 * сообщение об ошибке в случае сбоя
@@ -943,9 +985,9 @@ QUESTION_FORM;
 		 *извлечь варианты ответа на вопрос из формы
 		 */
 		$options = array();
-		for ($i = 1; $i <= NUM_OF_OPTIONS; $i++)
+		for ($i = 0; $i < NUM_OF_OPTIONS; $i++)
 		{
-			$options['option'.$i] = htmlentities($_POST['option'.$i], ENT_QUOTES);
+			$options[$i] = array('responseOption_text' => htmlentities($_POST['option'.$i], ENT_QUOTES));
 		}
 		
 		$arrQuestion = array(
@@ -955,17 +997,35 @@ QUESTION_FORM;
 		);
 		
 		/*
-		 * сохраняем вопрос в сеансе, увеличивая счетчик на единицу
+		 * Создать объект вопроса
 		 */
+		$objQuestion = Question::createQuestion($arrQuestion);
+		
+		/*
+		 * Сохранить объект в сеансе, увеличивая счетчик на единицу
+		 * если вопрос новый
+		 */
+		
 		if ( !isset($_SESSION['edited_interview']['cluster']['questions']) )
 		{
 			$_SESSION['edited_interview']['cluster']['questions'] = array();
 			$_SESSION['edited_interview']['cluster']['num_questions'] = 0;
 		}
 		
+		if ( isset($_POST['question_id'] ) )
+		{
+			//вопрос редактировался пользователем, поэтому обновляем его в сеансе
+			$id = $_POST['question_id'];
+		}
+		else
+		{
+			//добавлен еще один вопрос
+			$id = (int)$_SESSION['edited_interview']['cluster']['num_questions']++;
+		}
 		
-		$num = (int)$_SESSION['edited_interview']['cluster']['num_questions']++;
-		$_SESSION['edited_interview']['cluster']['questions']['question'.$num] = $arrQuestion;
+		var_dump($objQuestion);
+		
+		$_SESSION['edited_interview']['cluster']['questions'][$id] = $objQuestion;
 				
 		return TRUE;
 	}

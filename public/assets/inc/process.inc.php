@@ -90,8 +90,8 @@ if ( $_POST['token'] == $_SESSION['token']
 	$obj = new $useAction['object']();
 	if ( TRUE === $msg=$obj->$useAction['method']() )
 	{
-		header($useAction['header']);
-		exit;
+		//header($useAction['header']);
+		//exit;
 	}
 	else
 	{
