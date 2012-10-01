@@ -22,7 +22,7 @@ include_once 'assets/common/header.inc.php';
 if ( !isset($_SESSION['taster_id']) )
 {
 	//отправляем пользователя на главную страницу
-	header("Location: /");
+	header("Location: ./");
 	exit;
 }
 

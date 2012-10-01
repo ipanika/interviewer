@@ -6,6 +6,14 @@
 include_once '../sys/core/init.inc.php';
 
 /*
+ * Перенаправить незарегистрированного пользователя на основную страницу
+ */
+if (!isset($_SESSION['user']) )
+{
+	header("Location: ./");
+	exit();
+}
+/*
  * Задать название страницы и файлы CSS
  */
 $strPageTitle = "";
@@ -27,19 +35,17 @@ $objInterview = new Interview($objDB);
 		<fieldset>
 		<label>Текущий опрос: <?php echo $objInterview->displayCurInterview()?></label>
 		<?php /*если текущий опрос - треугольник*/?>
+		<div>
 		<input type="submit" name="admin_logout" 
 			value="Выход"/>
+		<input type="hidden" name="token" value="<?php echo $_SESSION['token'];?>"/>
+		<input type="hidden" name="action" value="user_logout" />
+		<div>
 		</fieldset>
 	</form>
-	<form action="editInterview.php" method="post">
-		<input type="submit" name="edit_interview" 
-			value="Создать/изменить дегустационный лист"/>
-	</form>	
+	<a href="editInterview.php" class="admin">Создать новый дегустационный лист</a>
 	<a href="changeCurInterview.php" class="admin">Сменить текущий дегустационный лист</a>
-	<form action="report.php" method="post">
-		<input type="submit" name="report_submit" 
-			value="Отчеты по проведенным опросам"/>
-	</form>
+	<a href="report.php" class="admin">Отчеты по проведенным опросам</a>
 </div><!-- end #content -->
 
 <?php

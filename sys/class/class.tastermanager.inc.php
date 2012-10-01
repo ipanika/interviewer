@@ -44,7 +44,6 @@ class TasterManager extends DB_Connect
 		 * Создать HTML-разметку выпадающего списка дегустаторов
 		 */
 		$html = "<select name=\"taster_id\">\n\r";
-		$html .= "<option disabled selected>Выберите себя из списка</option>\n\r";
 		foreach ( $arrTasters as $objTaster )
 		{
 			$html .= "<option value=\"$objTaster->id\">$objTaster->surname $objTaster->name</option>\n\r";

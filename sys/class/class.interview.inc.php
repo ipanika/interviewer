@@ -1071,6 +1071,7 @@ OPTION_FORM;
 			<input type="hidden" name="action" value="question_edit" />
 			<input type="hidden" name="token" value="$_SESSION[token]" />
 			<input type="submit" name="question_submit" value="$strSubmit" />
+			<a href="editInterview.php" class="admin">Отмена</a>
 		</fieldset>
 	</form>
 QUESTION_FORM;

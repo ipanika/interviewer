@@ -34,7 +34,7 @@ $objTasterManager = new TasterManager();
 			value="<?php echo $_SESSION['token'];?>"/>
 		<input type="submit" name="start_submit" 
 			value="Начать опрос"/>
-		<a href="login.php">Войти в систему как администратор</a>
+		<a href="login.php" class="admin">Войти в систему как администратор</a>
 		</fieldset>
 	</form>
 	<form action="adminTaster.php" method="post">

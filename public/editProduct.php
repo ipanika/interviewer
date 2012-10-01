@@ -6,6 +6,15 @@
 include_once '../sys/core/init.inc.php';
 
 /*
+ * ѕеренаправить незарегистрированного пользовател€ на основную страницу
+ */
+if (!isset($_SESSION['user']) )
+{
+	header("Location: ./");
+	exit();
+}
+
+/*
  * «адать название страницы и файлы CSS
  */
 $strPageTitle = "";
@@ -18,9 +27,6 @@ include_once 'assets/common/header.inc.php';
 
 $objProductManager = new ProductManager();
 
-/*
- * ќтобразить стартовую страницу
- */
 ?>
 
 <div id="content">

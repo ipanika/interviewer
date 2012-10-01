@@ -22,6 +22,16 @@ foreach ( $C as $name => $val )
  * Создать поисковый массив для действий, выполняемых над формой
  */
 $arrActions = array(
+		'user_login' => array(
+			'object'=> 'Admin',
+			'method'=> 'processLoginForm',
+			'header'=> 'Location: ../../admin.php'
+		),
+		'user_logout' => array(
+			'object'=> 'Admin',
+			'method'=> 'processLogout',
+			'header'=> 'Location: ../../'
+		),
 		'taster_edit' => array(
 			'object'=> 'TasterManager',
 			'method'=> 'processTasterForm',

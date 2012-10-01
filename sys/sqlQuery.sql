@@ -101,6 +101,14 @@ CREATE TABLE IF NOT EXISTS `interviewer`.`answers` (
 ) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;# MySQL returned an empty result set (i.e. zero rows).
 
 
+/*таблица для хранения данных пользователей-администраторов*/
+CREATE TABLE IF NOT EXISTS `interviewer`.`users` (
+	`user_id`	INT(11) NOT NULL AUTO_INCREMENT,
+	`user_name`	VARCHAR(100),
+        `user_pass`	VARCHAR(100),
+	PRIMARY KEY (`user_id`)
+) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+
 /*начальное заполнение таблиц данными*/
 
 /*список образцов продукции*/

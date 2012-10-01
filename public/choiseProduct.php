@@ -6,6 +6,15 @@
 include_once '../sys/core/init.inc.php';
 
 /*
+ * Перенаправить незарегистрированного пользователя на основную страницу
+ */
+if (!isset($_SESSION['user']) )
+{
+	header("Location: ./");
+	exit();
+}
+
+/*
  * Задать название страницы и файлы CSS
  */
 $strPageTitle = "";
