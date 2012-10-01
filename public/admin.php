@@ -19,12 +19,13 @@ include_once 'assets/common/header.inc.php';
 /*
  * Панель администратора
  */
+$objInterview = new Interview($objDB);
 ?>
 
 <div id="content">
 	<form action="assets/inc/process.inc.php" method="post">
 		<fieldset>
-		<label>Текущий опрос: <?php?></label>
+		<label>Текущий опрос: <?php echo $objInterview->displayCurInterview()?></label>
 		<?php /*если текущий опрос - треугольник*/?>
 		<input type="submit" name="admin_logout" 
 			value="Выход"/>
@@ -34,10 +35,7 @@ include_once 'assets/common/header.inc.php';
 		<input type="submit" name="edit_interview" 
 			value="Создать/изменить дегустационный лист"/>
 	</form>	
-	<form action="changeInterview.php" method="post">
-		<input type="submit" name="change_current_interview" 
-			value="Сменить текущий дегустационный лист"/>
-	</form>
+	<a href="changeCurInterview.php" class="admin">Сменить текущий дегустационный лист</a>
 	<form action="report.php" method="post">
 		<input type="submit" name="report_submit" 
 			value="Отчеты по проведенным опросам"/>

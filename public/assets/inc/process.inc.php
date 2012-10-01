@@ -58,8 +58,13 @@ $arrActions = array(
 			'header' => 'Location: ../../editInterview.php'
 		),
 		'product_edit' => array(
-			'object'=> 'Interview',
+			'object'=> 'ProductManager',
 			'method'=> 'processProductForm',
+			'header'=> 'Location: ../../choiseProduct.php'
+		),
+		'product_choise' => array(
+			'object'=> 'Interview',
+			'method'=> 'processChoiseProduct',
 			'header'=> 'Location: ../../editInterview.php'
 		),
 		'choice_cluster' => array(
@@ -77,6 +82,11 @@ $arrActions = array(
 			'method' => 'processInterviewForm',
 			'header' => 'Location: ../../admin.php'
 		),
+		'change_cur_interview' => array(
+			'object' => 'Interview',
+			'method' => 'processChangeCurInterview',
+			'header' => 'Location: ../../admin.php'
+		)
 	);
 
 /*
@@ -90,8 +100,8 @@ if ( $_POST['token'] == $_SESSION['token']
 	$obj = new $useAction['object']();
 	if ( TRUE === $msg=$obj->$useAction['method']() )
 	{
-		//header($useAction['header']);
-		//exit;
+		header($useAction['header']);
+		exit;
 	}
 	else
 	{

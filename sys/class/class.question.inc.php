@@ -3,7 +3,7 @@
 /**
  * Хранит информацию о вопросе
  */
-class Question extends DB_Connect
+class Question
 {
 	/**
 	 * Идентификатор вопроса
@@ -54,7 +54,7 @@ class Question extends DB_Connect
 		 * Вызвать конструктор родительского класса для проверки
 		 * существования объекта базы данных
 		 */
-		parent::__construct($objDB);
+		//parent::__construct($objDB);
 	}
 	
 	/**
@@ -77,7 +77,7 @@ class Question extends DB_Connect
 			$option = $arrQuestion['options'][$i];
 			try
 			{
-				$objQuestion->arrResponseOptions[$i++] = new ResponseOption($option);
+				$objQuestion->arrResponseOptions[$i] = new ResponseOption($option);
 			}
 			catch ( Exception $e )
 			{
@@ -95,14 +95,14 @@ class Question extends DB_Connect
 	 * @param object: объект базы данных
 	 * @return object
 	 */
-	static function getQuestionById($id, $objDB = NULL)
+	static function getQuestionById($id, $objDB)
 	{
 		if ( empty($id) )
 		{
 			return NULL;
 		}
 		
-		$objQuestion = new self($objDB);
+		$objQuestion = new self(/*$objDB*/);
 		
 		/*
 		 * Получаем данные о вопросе из базы данных
@@ -113,9 +113,13 @@ class Question extends DB_Connect
 					FROM `questions` 
 					WHERE `question_id` = :id
 					LIMIT 1";
+					
+		/*
+		 * Проверить что был передан объект базы данных
+		 */
 		try
 		{
-			$stmt = $objQuestion->_objDB->prepare($strQuery);
+			$stmt = $objDB->prepare($strQuery);
 			$stmt->bindParam(":id", $id, PDO::PARAM_INT);
 			$stmt->execute();
 			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -144,7 +148,7 @@ class Question extends DB_Connect
 			
 			try
 			{
-				$stmt = $objQuestion->_objDB->prepare($strQuery);
+				$stmt = $objDB->prepare($strQuery);
 				$stmt->execute();
 				$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
 				$stmt->closeCursor();
