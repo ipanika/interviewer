@@ -1348,7 +1348,6 @@ NEW_PRODUCT_BUTTON;
 	
 	/**
 	 * Метод возвращает список всех дегустационных листов зарегистрированных в системе
-	 * и кнопку для смены текущего дегустационного листа 
 	 */
 	public function displayInterviewList()
 	{
@@ -1372,21 +1371,8 @@ NEW_PRODUCT_BUTTON;
 				$strInterviewList .= "\n\t<option value=\"$elem[interview_id]\">$elem[interview_name]</option>";
 			}
 			$strInterviewList .= "\n</select>";
-			
-			$strCurInterview = $this->displayCurInterview();
 									
-			return <<<CHANGE_INTERVIEW
-	<form action="assets/inc/process.inc.php" method="post">
-		<fieldset>
-			<label>Текущий дегустационный лист: $strCurInterview</label>
-			$strInterviewList
-			<input type="hidden" name="action" value="change_cur_interview" />
-			<input type="hidden" name="token" value="$_SESSION[token]" />
-			<input type="submit" name="taster_submit" value="Сделать текущим" />
-			<a href="admin.php" class="admin">Отмена</a>
-		</fieldset>
-	</form>
-CHANGE_INTERVIEW;
+			return $strInterviewList;
 		}
 		catch ( Exception $e )
 		{

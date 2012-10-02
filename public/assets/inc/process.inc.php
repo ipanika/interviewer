@@ -96,6 +96,11 @@ $arrActions = array(
 			'object' => 'Interview',
 			'method' => 'processChangeCurInterview',
 			'header' => 'Location: ../../admin.php'
+		),
+		'get_report' => array(
+			'object' => 'Report',
+			'method' => 'processChoiseInterview',
+			'header' => 'Location: ../../report.php'
 		)
 	);
 
