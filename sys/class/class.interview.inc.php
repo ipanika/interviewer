@@ -212,8 +212,6 @@ FORM_MARKUP;
 		$strQuery .= " ORDER BY `interview_product`.`interview_product_id` 
 					LIMIT 1";
 		
-		echo "$strQuery";
-		
 		try
 		{
 			$stmt = $this->_objDB->prepare($strQuery);
@@ -428,7 +426,6 @@ FORM_MARKUP;
 		$strProductList = $this->_getProductList();
 		//добавить кнопку для сохранения дегустационного листа
 		$strCmdSave = $this->_getCmdSave();
-		print_r($_SESSION);
 		
 		$strCmdCancel = <<<CANCEL
 	<form action="assets/inc/process.inc.php" method="post" >
@@ -627,7 +624,6 @@ CMD_SAVE;
 			
 			foreach($arrEditedInterview['products'] as $product)
 			{
-				print_r($product->id);
 				$stmt1->bindParam(":productId", $product->id, PDO::PARAM_INT);
 				$stmt1->execute();
 			}
@@ -955,7 +951,6 @@ NEW_QUESTION_BUTTON;
 		$strOptionList = "";
 		$arrOptions = $objQuestion->arrResponseOptions;
 		
-		print_r($arrOptions);
 		for ($i = 0; $i < NUM_OF_OPTIONS; $i++)
 		{
 			$num = $i + 1;
@@ -1098,7 +1093,7 @@ QUESTION_FORM;
 		 * извлечь данные из формы
 		 */
 		$strQuestionText = htmlentities($_POST['question_text'], ENT_QUOTES);
-		$strQuestionRate = htmlentities($_POST['question_rate'], ENT_QUOTES);
+		$strQuestionRate = str_replace(",", ".", htmlentities($_POST['question_rate'], ENT_QUOTES));
 		
 		/*
 		 *извлечь варианты ответа на вопрос из формы

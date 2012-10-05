@@ -82,15 +82,15 @@ class Report extends DB_Connect
 		$interviewId = $_SESSION['report']['interview_id'];
 		
 		$strQuery = "SELECT 
-						`answers`.`interview_product_id`,
+						`answers`.`interview_product_id` AS `product_id`,
 						`products`.`product_name`,
 						`answers`.`responseOption_id`,
 						COUNT(*) AS amount_taster,
-						`responseoptions`.`responseOption_text`,
 						`responseoptions`.`responseOption_num`,
 						`questions`.`question_id`,
 						`questions`.`question_text`,
-						`questions`.`question_rate`
+						`questions`.`question_rate`,
+						GROUP_CONCAT(`answers`.`comment` SEPARATOR '<br>') AS `comment`
 					FROM `answers`
 					LEFT JOIN `interview_product` 
 						ON `interview_product`.`interview_product_id` = `answers`.`interview_product_id`
@@ -118,8 +118,11 @@ class Report extends DB_Connect
 			
 			if ( isset($arrResults[0]) )
 			{
-				echo "lskdjfalksdjflka";
 				$strReport = $this->_getReport($arrResults);
+			}
+			else 
+			{
+				$strReport = "По данному опросу нет данных";
 			}
 									
 			return $strReport;
@@ -130,79 +133,6 @@ class Report extends DB_Connect
 		}
 	}
 	
-	public function getHeader()
-	{
-		//количество показателей для продукта
-		$numOfQuest = NUM_OF_QUESTIONS;
-		$strProductResF =<<<PRODUCT_RES_FIRST
-			<tr align="center">
-				<td rowspan="$numOfQuest">$product_name</td>
-				<td>$question_num</td>
-				<td>$question_text</td>
-				<td>$question_rate</td>
-				<td>$scores[1]</td>
-				<td>$scores[2]</td>
-				<td>$scores[3]</td>
-				<td>$scores[4]</td>
-				<td>$scores[5]</td>
-				<td>$scores[6]</td>
-				<td>$scores[7]</td>
-				<td>$taster_num</td>
-				<td>$average</td>
-				<td>$averToRate</td>
-				<td  rowspan="$numOfQuest">$overallRating</td>
-				<td>$percentOfMin</td>
-				<td>$percentOfMax</td>
-				<td>$percentOfOver5</td>
-			</tr>
-PRODUCT_RES_FIRST;
-
-		$strProductRes =<<<PRODUCT_RES
-			<tr align="center">
-				<td>$question_num</td>
-				<td>$question_text</td>
-				<td>$question_rate</td>
-				<td>$scores[1]</td>
-				<td>$scores[2]</td>
-				<td>$scores[3]</td>
-				<td>$scores[4]</td>
-				<td>$scores[5]</td>
-				<td>$scores[6]</td>
-				<td>$scores[7]</td>
-				<td>$taster_num</td>
-				<td>$average</td>
-				<td>$averToRate</td>
-				<td>$percentOfMin</td>
-				<td>$percentOfMax</td>
-				<td>$percentOfOver5</td>
-			</tr>
-PRODUCT_RES;
-	
-	
-		$strReport =<<<REP
-		<table  width="100%" border="1" cellpadding="4" cellspacing="0">
-			<tr>
-				<td rowspan="2">Наименование образца</td>
-				<td rowspan="2">Номер показателя</td>
-				<td rowspan="2">Наименование показателя </td>
-				<td rowspan="2">Вес показателя</td>
-				<th colspan="7">Количество участников дегустации, поставивших оценки:</th>
-				<td rowspan="2">Итого, участников</td>
-				<td rowspan="2">Средний балл</td>
-				<td rowspan="2">Оценка с учетом весомости</td>
-				<td rowspan="2">Общая оценка</td>
-				<td rowspan="2">Доля участников, давших минимальные оценки, %(1, 2, 3)</td>
-				<td rowspan="2">Доля участников, давших максимальные оценки, % (5, 6, 7)</td>
-				<td rowspan="2">Доля участников, давших оценки свыше 5 баллов, % (6, 7)</td>
-			</tr>
-			<tr>
-				<th>1.0</th><th>2.0</th><th>3.0</th><th>4.0</th><th>5.0</th><th>6.0</th><th>7.0</th>
-			</tr>
-			$strTab
-		</table>
-REP;
-	}
-	
 	/**
 	 * Возвращает HTML-таблицу отчета о проведенном опросе
 	 *
@@ -211,6 +141,61 @@ REP;
 	 */
 	private function _getReport($arrRes)
 	{
+		/*
+		 * Разбить исходный массив результатов на строки, содержащие 
+		 * результаты по конкретному показателю для конкретного образца
+		 */
+		
+		/*
+		 * Сгруппировать все данные по образцам продукции
+		 */
+		$arrProducts = array();
+		$curProductId = 0;
+		foreach($arrRes as $elem)
+		{
+			if ($curProductId != $elem['product_id'])
+			{
+				$curProductId = $elem['product_id'];
+				$arrProducts[$curProductId] = array();
+				$arrProducts[$curProductId]['product_name'] = $elem['product_name'];
+				//вариант ответа для данного продукта
+				$responseOption = array(
+					'responseOption_id' => $elem['responseOption_id'],
+					'amount_taster' => $elem['amount_taster'],
+					'responseOption_num' => $elem['responseOption_num'],
+					'question_id' => $elem['question_id'],
+					'question_text' => $elem['question_text'],
+					'question_rate' => $elem['question_rate'],
+					'comment' => $elem['comment']
+				);
+				$arrProducts[$curProductId]['responseOptions'] = array();
+				$arrProducts[$curProductId]['responseOptions'][] = $responseOption;
+			}
+			else
+			{
+				//вариант ответа для данного продукта
+				$responseOption = array(
+					'responseOption_id' => $elem['responseOption_id'],
+					'amount_taster' => $elem['amount_taster'],
+					'responseOption_num' => $elem['responseOption_num'],
+					'question_id' => $elem['question_id'],
+					'question_text' => $elem['question_text'],
+					'question_rate' => $elem['question_rate'],
+					'comment' => $elem['comment']
+				);
+				$arrProducts[$curProductId]['responseOptions'][] = $responseOption;
+			}
+		}
+		
+		/*
+		 * Добавить строки таблицы для каждого образца
+		 */
+		$strTab = "";
+		foreach($arrProducts as $arrProduct)
+		{
+			$strTab .= $this->_printRowForProduct($arrProduct);
+		}
+		
 		return <<<REP
 		<table width="100%" border="1" cellpadding="4" cellspacing="0">
 			<tr>
@@ -226,6 +211,7 @@ REP;
 				<td rowspan="2">Доля участников, давших минимальные оценки, %(1, 2, 3)</td>
 				<td rowspan="2">Доля участников, давших максимальные оценки, % (5, 6, 7)</td>
 				<td rowspan="2">Доля участников, давших оценки свыше 5 баллов, % (6, 7)</td>
+				<td rowspan="2">Комментарии участников</td>
 			</tr>
 			<tr>
 				<th>1.0</th><th>2.0</th><th>3.0</th><th>4.0</th><th>5.0</th><th>6.0</th><th>7.0</th>
@@ -233,6 +219,164 @@ REP;
 			$strTab
 		</table>
 REP;
+	}
+	
+	/**
+	 * Выводит строку таблицы полностью описывающюю данный продукт
+	 */
+	private function _printRowForProduct($arrProduct)
+	{
+		/*
+		 * Группируем данные по вопросам к данному образцу
+		 */
+		$arrQuestions = array();
+		$curQuestionId = 0;
+		$j = 1;
+		$i = 0;
+		foreach($arrProduct['responseOptions'] as $option)
+		{
+			if ( $curQuestionId != $option['question_id'] )
+			{
+				$i++;
+				$curQuestionId = $option['question_id'];
+				$arrQuestions[$i] = array();
+				$arrQuestions[$i]['question_text'] = $option['question_text'];
+				$arrQuestions[$i]['question_rate'] = $option['question_rate'];
+				$arrQuestions[$i]['question_num'] = $j++;
+				$arrQuestions[$i]['scores'] = array(1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0, 6 => 0, 7 => 0);
+				$arrQuestions[$i]['comment'] = $option['comment'];
+				//количество участников 
+				$arrQuestions[$i]['numOfTasters'] = $option['amount_taster'];
+				//количество участников давших текущую оценку
+				$arrQuestions[$i]['scores'][$option['responseOption_num']] = $option['amount_taster'];
+			}
+			else
+			{
+				//количество участников 
+				$arrQuestions[$i]['numOfTasters'] += $option['amount_taster'];
+				//количество участников давших текущую оценку
+				$arrQuestions[$i]['scores'][$option['responseOption_num']] = $option['amount_taster'];
+				$arrQuestions[$i]['comment'] .= '<br>' . $option['comment'];
+			}
+		}
+		
+		/*
+		 * Формируем строки начиная со второй, чтобы подсчитать суммарную оценку образца 
+		 */
+		$overallRating = 0;
+		$i = 0;
+		$strLastRows = "";
+		foreach ($arrQuestions as $question)
+		{
+			if ( $i != 0 )
+			{
+				// Подсчитать среднюю оценку по показателю
+				$average = 0;
+				for ($j = 0; $j < NUM_OF_OPTIONS; $j++)
+				{
+					$average += ($j+1) * $question['scores'][($j+1)];
+				}
+				$average = round($average / $question['numOfTasters'], 2);
+				$question['average'] = $average;
+				//подсчитываем оценку с учетом веса
+				$question['averToRate'] = $average * $question['question_rate'];
+				$overallRating += $average * $question['question_rate'];
+				//выводим данный вопрос
+				$strLastRows .= $this->_printRow($question);
+			}
+			$i++;
+		}
+		
+		//выводим первую строку
+		$question = $arrQuestions[1];
+		$question['question_num'] = 1;
+		// Подсчитать среднюю оценку по показателю
+		$average = 0;
+		for ($j = 0; $j < NUM_OF_OPTIONS; $j++)
+		{
+			$average += ($j+1) * $question['scores'][($j+1)];
+		}
+		$average = round($average / $question['numOfTasters'], 2);
+		$question['average'] = $average;
+		//подсчитываем оценку с учетом веса
+		$question['averToRate'] = $average * $question['question_rate'];
+		$overallRating += $average * $question['question_rate'];
+		//выводим 1 вопрос, название образца и суммарный балл
+		$strFirstRow = $this->_printFirstRow($arrProduct['product_name'], $question, $i, $overallRating);
+		
+		return $strFirstRow . $strLastRows;
+	}
+	
+	/**
+	 * Возвращает строку HTML-таблицы
+	 *
+	 * @param array: массив данных для заполнения полей строки
+	 * @return string: HTML-строка
+	 */
+	private function _printRow($arrRow)
+	{
+		$scores = $arrRow['scores'];
+		$percentOfMin = round(100 * ($scores[1] + $scores[2] + $scores[3]) / $arrRow['numOfTasters'], 2);
+		$percentOfMax = round(100 * ($scores[5] + $scores[6] + $scores[7]) / $arrRow['numOfTasters'], 2);
+		$percentOfOver5 = round(100 * ($scores[6] + $scores[7]) / $arrRow['numOfTasters'], 2);
+		return <<<PRODUCT_RES
+			<tr align="center">
+				<td>$arrRow[question_num]</td>
+				<td>$arrRow[question_text]</td>
+				<td>$arrRow[question_rate]</td>
+				<td>$scores[1]</td>
+				<td>$scores[2]</td>
+				<td>$scores[3]</td>
+				<td>$scores[4]</td>
+				<td>$scores[5]</td>
+				<td>$scores[6]</td>
+				<td>$scores[7]</td>
+				<td>$arrRow[numOfTasters]</td>
+				<td>$arrRow[average]</td>
+				<td>$arrRow[averToRate]</td>
+				<td>$percentOfMin</td>
+				<td>$percentOfMax</td>
+				<td>$percentOfOver5</td>
+				<td>$arrRow[comment]</td>
+			</tr>
+PRODUCT_RES;
+	}
+	
+	/**
+	 * Возвращает строку HTML-таблицы
+	 *
+	 * @param array: массив данных для заполнения полей строки
+	 * @return string: HTML-строка
+	 */
+	private function _printFirstRow($strProductName, $arrRow, $numQuest, $overallRating)
+	{
+		$scores = $arrRow['scores'];
+		$percentOfMin = round(100 * ($scores[1] + $scores[2] + $scores[3]) / $arrRow['numOfTasters'], 2);
+		$percentOfMax = round(100 * ($scores[5] + $scores[6] + $scores[7]) / $arrRow['numOfTasters'], 2);
+		$percentOfOver5 = round(100 * ($scores[6] + $scores[7]) / $arrRow['numOfTasters'], 2);
+		return <<<PRODUCT_RES
+			<tr align="center">
+				<td rowspan="$numQuest">$strProductName</td>
+				<td>$arrRow[question_num]</td>
+				<td>$arrRow[question_text]</td>
+				<td>$arrRow[question_rate]</td>
+				<td>$scores[1]</td>
+				<td>$scores[2]</td>
+				<td>$scores[3]</td>
+				<td>$scores[4]</td>
+				<td>$scores[5]</td>
+				<td>$scores[6]</td>
+				<td>$scores[7]</td>
+				<td>$arrRow[numOfTasters]</td>
+				<td>$arrRow[average]</td>
+				<td>$arrRow[averToRate]</td>
+				<td rowspan="$numQuest">$overallRating</td>
+				<td>$percentOfMin</td>
+				<td>$percentOfMax</td>
+				<td>$percentOfOver5</td>
+				<td>$arrRow[comment]</td>
+			</tr>
+PRODUCT_RES;
 	}
 }
  

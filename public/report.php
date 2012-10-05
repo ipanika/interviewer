@@ -18,7 +18,7 @@ if (!isset($_SESSION['user']) )
  * Задать название страницы и файлы CSS
  */
 $strPageTitle = "";
-$arrCSSFiles = array('style.css', 'admin.css');
+$arrCSSFiles = array('admin.css');
 
 /*
  * Включить начальную часть страницы
