@@ -58,7 +58,7 @@ $arrActions = array(
 			'header' => 'Location: ../../editInterview.php'
 		), 
 		'question_edit' => array(
-			'object' => 'Interview',
+			'object' => 'QuestionManager',
 			'method' => 'processQuestionForm',
 			'header' => 'Location: ../../editInterview.php'
 		), 

@@ -39,6 +39,16 @@ CREATE TABLE IF NOT EXISTS `interviewer`.`questions` (
 	FOREIGN KEY (`cluster_id`) REFERENCES clusters(`cluster_id`)
 ) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;# MySQL returned an empty result set (i.e. zero rows).
 
+CREATE TABLE IF NOT EXISTS `interviewer`.`activequestions` (
+	`activequestions_id`	INT(11) NOT NULL AUTO_INCREMENT,
+	`interview_id`		INT(11),
+	`question_id`		INT(11),
+	
+	PRIMARY KEY (`activequestions_id`),
+	FOREIGN KEY (`interview_id`) REFERENCES interviews(`cluster_id`),
+        FOREIGN KEY (`question_id`) REFERENCES questions(`question_id`)
+) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+
 
 /*таблица для хранения варантов ответа*/
 CREATE TABLE IF NOT EXISTS `interviewer`.`responseOptions` (

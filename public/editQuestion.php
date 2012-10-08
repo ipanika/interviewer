@@ -25,7 +25,7 @@ $arrCSSFiles = array('style.css', 'admin.css');
  */
 include_once 'assets/common/header.inc.php';
 
-$objInterview = new Interview();
+$objQuestionManager = new QuestionManager();
 
 /*
  * Отобразить стартовую страницу
@@ -34,7 +34,7 @@ $objInterview = new Interview();
 
 <div id="content">
 
-<?php echo $objInterview->displayQuestionForm(); ?>
+<?php echo $objQuestionManager->displayQuestionForm(); ?>
 
 </div><!-- end #content -->
 

@@ -1,7 +1,7 @@
 ﻿<?php
 
 /**
- * Обеспечивает проведение опроса
+ * Обеспечивает создание и проведение опроса
  */
 class Interview extends DB_Connect
 {
@@ -86,6 +86,7 @@ GOOD_BYE;
 					$strCluster = $this->_getClusterProfil();
 					break;
 				case M_COMPLX:
+					$strCluster = $this->_getClusterComplex();
 					break;
 				case M_CONSUM:
 					break;
@@ -105,6 +106,84 @@ FORM_MARKUP;
 		}	
 	}
 	
+	
+	/**
+	 * Возвращает разметку для блока вопросов составленных по профильному методу
+	 *
+	 * @return string: HTML-разметка
+	 */
+	private function _getClusterComplex()
+	{
+		/*
+		 * Получаем идентификатор текущего опроса
+		 */
+		$idInterview = (int)$_SESSION['interview_id'];
+		
+		$strQuery = "SELECT
+						`questions`.`question_id`,
+						`questions`.`question_text`,
+						`responseoptions`.`responseoption_id`,
+						`responseoptions`.`responseoption_num`
+					FROM `questions`
+					LEFT JOIN `interviews` 
+						ON `interviews`.`cluster_id` = `questions`.`cluster_id`
+					LEFT JOIN `responseoptions` 
+						ON `questions`.`question_id` = `responseoptions`.`question_id`
+					WHERE `interviews`.`interview_id`= $idInterview
+					ORDER BY 
+						`questions`.`question_id`, 
+						`responseoptions`.`responseoption_id`";
+		
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+		}
+		catch (Exception $e)
+		{
+			die ($e->getMessage() );
+		}
+		
+		/*
+		 * Формируем шапку таблицы
+		 */
+		$strTable = "<table border=\"1\">
+			<tr>
+				<td >№</td>
+				<td>Показатели</td>
+				<td>Шкала оценки</td>
+				<td>Комментарии</td>
+			</tr>\n";
+		/*
+		 * Формируем строки таблицы с вопросами и вариантами ответов
+		 */
+		$curQuest = NULL;
+		$i = 0;
+		foreach ($results as $quest )
+		{
+		 	if ( $curQuest !== $quest['question_id'] )
+			{
+				//закрываем строку таблицы
+				if ($curQuest != NULL )
+				{
+					$strTable .= "\n\t\t</nobr></td>\n\t\t<td><textarea name=\"comment$curQuest\"></textarea></td>\n\t</tr>";
+				}
+				$i++;
+				$curQuest = $quest['question_id'];
+				$strTable .= "\n\t<tr>\n\t\t<td>$i</td>\n\t\t<td>$quest[question_text]</td>\n\t\t<td><nobr>";
+			}
+			$strTable .= "\n\t\t\t<input type=\"radio\" name=\"quest$quest[question_id]\" 
+					value=\"$quest[responseoption_id]\">$quest[responseoption_num]";
+		}
+		/*
+		 * Закрываем таблицу
+		 */
+		$strTable .= "\n\t\t</td>\n\t\t</nobr><td><textarea name=\"comment$curQuest\"></textarea></td>\n\t</tr>\n</table>\n";
+		return $strTable;
+	}
+	 
 	/**
 	 * Возвращает разметку для блока вопросов составленных по профильному методу
 	 *
@@ -434,7 +513,7 @@ FORM_MARKUP;
 		<input type="submit" name="cancel_submit" value="Отмена" />
 	</form>
 CANCEL;
-		return $strHeader . $strClusterType . $strQuestionList . $strProductList . $strCmdCancel . $strCmdSave;
+		return $strHeader . $strClusterType . $strQuestionList . $strProductList . $strCmdSave . $strCmdCancel;
 		
 	}
 	
@@ -452,8 +531,22 @@ CANCEL;
 			$arrEditedInterview = $_SESSION['edited_interview'];
 			if ( isset($arrEditedInterview['num_products'] ) )
 			{
+				//если опрос по комплексной методике - то выводим меню какие вопросы включать в лист
+				if ($arrEditedInterview['interview_type'] == M_COMPLX )
+				{
+					$strCheckQuestion = "<label>Вопросы которые включены к дегустационный лист:</label>";
+					$questNum = $arrEditedInterview['cluster']['num_questions'];
+					for ($i = 0; $i < $questNum; $i++)
+					{
+						$num = $i + 1;
+						$strCheckQuestion .= <<<CHECK_QUEST
+					<input type="checkbox" name="quest_num[]" value="$i" checked="checked" />$num</label>
+CHECK_QUEST;
+					}
+				}
 				return <<<CMD_SAVE
 	<form action="assets/inc/process.inc.php" method="post" >
+		$strCheckQuestion<br>
 		<input type="hidden" name="action" value="write_interview" />
 		<input type="hidden" name="token" value="$_SESSION[token]" />
 		<input type="submit" name="cancel_submit" value="Сохранить дегустационный лист" />
@@ -489,18 +582,21 @@ CMD_SAVE;
 			$strQuery = "INSERT INTO `clusters`
 							(
 								`cluster_name`,
-								`cluster_numQuestions`
+								`cluster_numQuestions`,
+								`cluster_type`
 							)
 							VALUES
 							(
 								:name,
-								:numQuest
+								:numQuest,
+								:type
 							)";
 			try
 			{
 				$stmt2 = $this->_objDB->prepare($strQuery);
 				$stmt2->bindParam(":name", $strClusterName, PDO::PARAM_STR);
 				$stmt2->bindParam(":numQuest", $numOfQuest, PDO::PARAM_INT);
+				$stmt2->bindParam(":type", $arrEditedInterview['interview_type'], PDO::PARAM_INT);
 				$stmt2->execute();
 				$stmt2->closeCursor();
 				//получаем идентификатор созданного блока вопросов
@@ -565,6 +661,7 @@ CMD_SAVE;
 			{
 				return $e->getMessage();
 			}
+			
 		}
 		else
 		{
@@ -632,6 +729,42 @@ CMD_SAVE;
 		catch (Exception $e)
 		{
 			return $e->getMessage();
+		}
+		
+		
+		//если сохраняемый опросный лист создан по комплексной методике - сохраняем вопросы которые участвуют в 
+		// данном опросе
+		if ( $arrEditedInterview['interview_type'] == M_COMPLX )
+		{
+			$arrQuestion = $this->_getQuestionListObjByClusterId($clusterId);
+			$strQuery = "INSERT INTO `activequestions`
+							(
+								`interview_id`,
+								`question_id`
+							)
+							VALUES
+							(
+								$interviewId,
+								:questId
+							)";
+			try
+			{
+				$stmt6 = $this->_objDB->prepare($strQuery);
+				print_r($_POST['quest_num']);
+				// получаем из формы, какие вопросы выбрал пользователь
+				foreach($_POST['quest_num'] as $questNum)
+				{
+					// и записываем в базу данных
+					$questId = $arrQuestion[$questNum]->id;
+					$stmt6->bindParam(":questId", $questId, PDO::PARAM_INT);
+					$stmt6->execute();
+				}
+				$stmt6->closeCursor();
+			}
+			catch(Exception $e)
+			{
+				return $e->getMessage();
+			}
 		}
 		
 		/*
@@ -721,11 +854,15 @@ HEADER_FORM;
 		 */
 		if ( isset($_SESSION['edited_interview']) )
 		{
-			//если в сеансе отмечено что создается новый блок вопросов
-			//то выводим форму для задания названия блока вопросов
-			if ( isset($_SESSION['edited_interview']['new_cluster']))
+			//если создается опрос по профильной схеме
+			if ( $_SESSION['edited_interview']['interview_type'] == M_PROFIL )
 			{
-				return <<<NEW_CLUSTER_FORM
+				//если в сеансе отмечено что создается новый блок вопросов
+				//то выводим форму для задания названия блока вопросов
+				if ( isset($_SESSION['edited_interview']['new_cluster']))
+				{
+					//вернуть разметку для задания названия блока вопросов
+					return <<<NEW_CLUSTER_FORM
 	<form action="assets/inc/process.inc.php" method="post">
 		<label>Блок вопросов</label>
 		<input type="text" name="cluster_name"
@@ -735,22 +872,22 @@ HEADER_FORM;
 		<input type="submit" name="next_submit" value="Далее" />
 	</form>
 NEW_CLUSTER_FORM;
-			}
-			$arrEditedInterview = $_SESSION['edited_interview'];
-			if ( isset($arrEditedInterview['cluster']) )
-			{
-				$strClusterName = $arrEditedInterview['cluster']['cluster_name'];
-				return <<<CLUSTER_FORM
+				}
+				$arrEditedInterview = $_SESSION['edited_interview'];
+				if ( isset($arrEditedInterview['cluster']) )
+				{
+					$strClusterName = $arrEditedInterview['cluster']['cluster_name'];
+					return <<<CLUSTER_FORM
 	<label>Блок вопросов:</label>
 	<input type="text" name="cluster_name"
 			id="cluster_name" value="$strClusterName" readonly/>
 CLUSTER_FORM;
-			}
-			else
-			{
-				//блок не задан, поэтому выводим приглашение для выбора
-				$strClusterList = $this->_getClusterList();
-				$strClusterForm = <<<CLUSTER_FORM
+				}
+				else
+				{
+					//блок не задан, поэтому выводим приглашение для выбора
+					$strClusterList = $this->_getClusterList();
+					$strClusterForm = <<<CLUSTER_FORM
 <form action="assets/inc/process.inc.php" method="post">
 	<label>Блок вопросов:</label>
 	$strClusterList\n\t
@@ -764,7 +901,8 @@ CLUSTER_FORM;
 	<input type="submit" name="new_cluster_submit" value="Новый блок вопросов" />
 </form>
 CLUSTER_FORM;
-				return $strClusterForm;
+					return $strClusterForm;
+				}
 			}
 		}
 		else
@@ -886,13 +1024,20 @@ CLUSTER_FORM;
 					$i = 1;
 					foreach( $arrQuestions as $objQuestion )
 					{
-						$strOptionsList = "";
-						foreach ( $objQuestion->arrResponseOptions as $option )
+						if ( $arrEditedInterview['interview_type'] == M_PROFIL)
 						{
-							$strOptionsList .=<<<OPTION_LIST
-							<label>$option->num</label>
-							<label>$option->text</label>
+							$strOptionsList = "<label>Варианты ответа:</label>";
+							foreach ( $objQuestion->arrResponseOptions as $option )
+							{
+								$strOptionsList .=<<<OPTION_LIST
+								<label>$option->num</label>
+								<label>$option->text</label>
 OPTION_LIST;
+							}
+						}
+						if ( $arrEditedInterview['interview_type'] == M_COMPLX )
+						{
+							$strOptionsList = "<label>Шкала ответа от 1 до 7.</label>";
 						}
 						$strQuestionsList .=<<<QUESTION_LIST
 						<p>
@@ -902,7 +1047,6 @@ OPTION_LIST;
 								<label>$objQuestion->text</label>
 								<label>Вес показателя:</label>
 								<label>$objQuestion->rate</label>
-								<label>Варианты ответа:</label>
 								$strOptionsList
 							</fieldset>
 						</form>
@@ -932,6 +1076,55 @@ NEW_QUESTION_BUTTON;
 					return $strQuestionsList;
 				}
 			}
+			else if ($arrEditedInterview['interview_type'] == M_COMPLX) 
+			{
+				/*
+				 * Ищем в базе данных блок вопросов составленный по методу комплексной оценки
+				 */
+				$strQuery = "SELECT 
+								`cluster_id`
+							FROM `clusters`
+							WHERE `cluster_type` = " . M_COMPLX;
+				try
+				{
+					$stmt = $this->_objDB->prepare($strQuery);
+					$stmt->execute();
+					$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+					$stmt->closeCursor();
+					
+					if ( isset($arrResults[0]) )
+					{
+						$clusterId = $arrResults[0]['cluster_id'];
+					}
+					else
+					{
+						$clusterId = NULL;
+					}
+				}
+				catch ( Exception $e )
+				{
+					die ( $e->getMessage() );
+				}
+				if ( $clusterId !== NULL)
+				{
+					$cluster = array(
+						'cluster_id' => $clusterId,
+						'num_questions' => 0
+					);
+				}
+				else
+				{
+					$cluster = array(
+						'num_questions' => 0
+					);
+				}
+			
+			$_SESSION['edited_interview']['cluster'] = $cluster;
+			return <<<NEW_QUESTION_BUTTON
+					<label>Вопросы для комплексной оценки еще не были созданы</label>
+					<a href="editQuestion.php" class="admin">Добавить вопрос в дегустационный лист</a>
+NEW_QUESTION_BUTTON;
+			}
 		}
 	}
 	
@@ -947,20 +1140,26 @@ NEW_QUESTION_BUTTON;
 		//получаем вопрос из сеанса
 		$objQuestion = $_SESSION['edited_interview']['cluster']['questions'][$id];
 		
-		//создаем разметку для вывода вариантов ответа
-		$strOptionList = "";
-		$arrOptions = $objQuestion->arrResponseOptions;
-		
-		for ($i = 0; $i < NUM_OF_OPTIONS; $i++)
+		if ( $_SESSION['edited_interview']['interview_type'] == M_PROFIL )
 		{
-			$num = $i + 1;
-			$option = $arrOptions[$i];
-			$strOptionList .=<<<OPTION_LIST
-			<label>$num</label>
-			<label>$option->text</label>
+			//создаем разметку для вывода вариантов ответа
+			$strOptionList = "";
+			$arrOptions = $objQuestion->arrResponseOptions;
+			
+			for ($i = 0; $i < NUM_OF_OPTIONS; $i++)
+			{
+				$num = $i + 1;
+				$option = $arrOptions[$i];
+				$strOptionList .=<<<OPTION_LIST
+				<label>$num</label>
+				<label>$option->text</label>
 OPTION_LIST;
+			}
 		}
-		
+		if ( $_SESSION['edited_interview']['interview_type'] == M_COMPLX )
+		{
+			$strOptionList = "<label>Шкала ответа от 1 до 7.</label>";
+		}
 		$questionNumber = $id + 1;
 		return <<<QUESTION_VIEW
 	<p>
@@ -1157,7 +1356,8 @@ QUESTION_FORM;
 		$strQuery = "SELECT
 						`questions`.`question_id`
 					FROM `questions`
-					WHERE `questions`.`cluster_id` = $clusterId";
+					WHERE `questions`.`cluster_id` = $clusterId
+					ORDER BY `question_id`";
 						
 		try
 		{
@@ -1333,10 +1533,58 @@ NEW_PRODUCT_BUTTON;
 					'interview_type' => $intInterviewType
 			);
 		
-		/*
-		 * Сохраняем данные в сеансе
-		 */
+		if ( $intInterviewType == M_COMPLX)
+		{
+			/*
+			 * Ищем в базе данных блок вопросов составленный по методу комплексной оценки
+			 */
+			$strQuery = "SELECT 
+							`cluster_id`,
+							`cluster_numQuestions`
+						FROM `clusters`
+						WHERE `cluster_type` = " . M_COMPLX;
+			try
+			{
+				$stmt = $this->_objDB->prepare($strQuery);
+				$stmt->execute();
+				$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+				$stmt->closeCursor();
+				
+				if ( isset($arrResults[0]) )
+				{
+					$clusterId = $arrResults[0]['cluster_id'];
+					$numQuest = $arrResults[0]['cluster_numQuestions'];
+				}
+				else
+				{
+					$clusterId = NULL;
+				}
+			}
+			catch ( Exception $e )
+			{
+				die ( $e->getMessage() );
+			}
+			if ( $clusterId !== NULL)
+			{
+				$cluster = array(
+					'cluster_id' => $clusterId,
+					'num_questions' => $numQuest
+				);
+			}
+			else
+			{
+				$cluster = array(
+					'num_questions' => 0
+				);
+			}
+			
+			/*
+			 * Сохраняем данные в сеансе
+			 */
+			$arrEditedInterview['cluster'] = $cluster;
+		}
 		$_SESSION['edited_interview'] = $arrEditedInterview;
+		
 		
 		return TRUE;
 	}
