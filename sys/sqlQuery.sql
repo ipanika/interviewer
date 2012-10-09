@@ -90,10 +90,17 @@ CREATE TABLE IF NOT EXISTS `interviewer`.`tasters` (
 	`taster_surname`	VARCHAR(80),
 	`taster_name`	VARCHAR(80),
 	`taster_sex`	CHAR(1),
+        `taster_date_birth` DATETIME,
+	`taster_preffered`VARCHAR(80),
+	`taster_residense`VARCHAR(80),
+	`taster_allergy`VARCHAR(80),
+	`taster_work`VARCHAR(80),
+	`taster_in_research`VARCHAR(80),
+	`taster_scale_from` INT(11),
+	`taster_scale_to` INT(11),
 	
 	PRIMARY KEY (`taster_id`)
-) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;# MySQL returned an empty result set (i.e. zero rows).
-
+) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci
 
 /*таблица для хранения ответов данных дегустатором*/
 CREATE TABLE IF NOT EXISTS `interviewer`.`answers` (
