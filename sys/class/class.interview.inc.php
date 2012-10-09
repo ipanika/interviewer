@@ -119,17 +119,17 @@ FORM_MARKUP;
 		 */
 		$idInterview = (int)$_SESSION['interview_id'];
 		
-		$strQuery = "SELECT
-						`questions`.`question_id`,
+		$strQuery = "SELECT 
+						`activequestions`.`question_id`,
 						`questions`.`question_text`,
 						`responseoptions`.`responseoption_id`,
 						`responseoptions`.`responseoption_num`
-					FROM `questions`
-					LEFT JOIN `interviews` 
-						ON `interviews`.`cluster_id` = `questions`.`cluster_id`
+					FROM `activequestions` 
+					LEFT JOIN `questions`
+							ON `questions`.`question_id` = `activequestions`.`question_id`
 					LEFT JOIN `responseoptions` 
 						ON `questions`.`question_id` = `responseoptions`.`question_id`
-					WHERE `interviews`.`interview_id`= $idInterview
+					WHERE `activequestions`.`interview_id` = $idInterview
 					ORDER BY 
 						`questions`.`question_id`, 
 						`responseoptions`.`responseoption_id`";
@@ -350,15 +350,28 @@ FORM_MARKUP;
 		/*
 		 * Получить номера вопросов блока
 		 */
-		$idInterview = (int)$_SESSION['interview_id'];
-		$strQuery = "SELECT
-						`questions`.`question_id`
-					FROM `questions`
-					LEFT JOIN `interviews` 
-						ON `interviews`.`cluster_id` = `questions`.`cluster_id`
-					WHERE `interviews`.`interview_id`= $idInterview
-					ORDER BY 
-						`questions`.`question_id`";
+		$idInterview = (int)$_SESSION['interview_id']; 
+		
+		if ( $this->_type == M_PROFIL)
+		{
+			$strQuery = "SELECT
+							`questions`.`question_id`
+						FROM `questions`
+						LEFT JOIN `interviews` 
+							ON `interviews`.`cluster_id` = `questions`.`cluster_id`
+						WHERE `interviews`.`interview_id`= $idInterview
+						ORDER BY 
+							`questions`.`question_id`";
+		}
+		if ( $this->_type == M_COMPLX)
+		{
+			$strQuery = "SELECT
+							`activequestions`.`question_id`
+						FROM `activequestions`
+						WHERE `activequestions`.`interview_id`= $idInterview
+						ORDER BY 
+							`activequestions`.`question_id`";
+		}
 		
 		try
 		{
@@ -384,6 +397,7 @@ FORM_MARKUP;
 						VALUES
 							(:tasterId, :prodId, :optionId, :ts, :comment)";
 		$stmt = $this->_objDB->prepare($strQuery);
+		print_r($arrQuestNums);
 		foreach ($arrQuestNums as $questNum)
 		{
 			//получить ответ на текущий вопрос
