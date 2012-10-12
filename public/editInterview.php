@@ -18,7 +18,7 @@ if (!isset($_SESSION['user']) )
  * Вывести начальную часть страницы
  */
 $strPageTitle = "";
-$arrCSSFiles = array('style.css', 'admin.css');
+$arrCSSFiles = array('style.css', 'admin.css', 'ajax.css');
 include_once 'assets/common/header.inc.php';
 
 $objInterview = new Interview($objDB)
