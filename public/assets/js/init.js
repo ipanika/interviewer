@@ -6,142 +6,168 @@ jQuery(function($){
 var processFile = "assets/inc/ajax.inc.php",
 
 // Функции для манипулирования модальным окном
-    fx = {
+fx = {
 
-        // Возвращает модальное окно, если оно существует;
-        // в противном случае создает новое модальное окно
-        "initModal" : function() {
-                // Если подходящие элементы отсутствуют, свойство
-				// length возвратить значение 0
-                if ( $(".modal-window").length==0 )
-                {
-                    // Создать элемент div, добать класс и
-                    // присоединить его к дескриптору body
-                    return $("<div>")
-                            .addClass("modal-window")
-                            .appendTo("body");
-                }
-                else
-                {
-                    // Возвратить модальное окно, если оно уже существует
-                    return $(".modal-window");
-                }
-            },
+	// Возвращает модальное окно, если оно существует;
+	// в противном случае создает новое модальное окно
+	"initModal" : function() {
+			// Если подходящие элементы отсутствуют, свойство
+			// length возвратить значение 0
+			if ( $(".modal-window").length==0 )
+			{	
+				// Создать элемент div, добать класс и
+				// присоединить его к дескриптору body
+				return $("<div>")
+						.addClass("modal-window")
+						.prependTo("body");
+			}
+			else
+			{
+				// Возвратить модальное окно, если оно уже существует
+				return $(".modal-window");
+			}
+		},
 
-        // Добавляет окно в разметку и обеспечивает его планое появление
-        "boxin" : function(data, modal) {
-                // Создать оверлей для сайта, добавить класс к обработчикам
-                // события щелчка и присоединить их к телу документа
-                $("<div>")
-                    .hide()
-                    .addClass("modal-overlay")
-                    .click(function(event){
-                            // Удалить событие
-                            fx.boxout(event);
-                        })
-                    .appendTo("body");
+	// Добавляет окно в разметку и обеспечивает его плавное появление
+	"boxin" : function(data, modal) {
+			// Создать оверлей для сайта, добавить класс к обработчикам
+			// события щелчка и присоединить их к телу документа
+			$("<div>")
+				.hide()
+				.addClass("modal-overlay")
+				.click(function(event){
+						// Удалить событие
+						fx.boxout(event);
+					})
+				.appendTo("body");
 
-                // Загрузить данные в модальное окно
-                // и присоединить его к телу документа
-                modal
-                    .hide()
-                    .append(data)
-                    .appendTo("body");
-
-                // Обеспечить плавное появление модального окна и оверлея
-                $(".modal-window,.modal-overlay")
-                    .fadeIn("slow");
-            },
-
-        // Обеспечивает плавное исчезновение окна и его удаление из DOM
-        "boxout" : function(event) {
-                // Если событе было запущено элементом, который
-                // вызвал эту функцию, предотвратить выполнение
-                // действия, заданного по умолчанию
-                if ( event!=undefined )
-                {
-                    event.preventDefault();
-                }
-
-                // Удалить класс "active" из всех ссылок
-                $("a").removeClass("active");
-
-                // Обеспечить плавное исчесзновение модального окна и оверлея,
-                // а затем полностью удалить их из DOM
-                $(".modal-window,.modal-overlay")
-                    .fadeOut("slow", function() {
-                            $(this).remove();
-                        }
-                    );
-            },
-
-        // Добавляет новый вопрос в разметку после сохранения
-        "addQuestion" : function(data, $formData){
-                // Преобразовать строку запроса в объект
-                var entry = fx.deserialize($formData);
+			// Загрузить данные в модальное окно
+			// и присоединить его к телу документа
+			modal
+				.hide()
+				.append(data)
+				.appendTo("body");
 				
-				// Добавить новый вопрос на страницу
-				console.log(entry);
-				/*
-				 * data - идентификатор добавлемого вопроса
-				 */
-				//передать запрос на формирование представления вопроса на сервер
-				/* $("<a>")
-                        .hide()
-                        .attr("href", "view.php?event_id="+data)
-                        .text(entry.event_title)
-                        .insertAfter($("strong:contains("+day+")"))
-                        .delay(1000)
-                        .fadeIn("slow"); */
-            },
+			// высота окна браузера 
+			var windowHeight = document.documentElement.clientHeight; 
+			
+			/* modal
+				.css({ 
+						"top": windowHeight - 140
+					});  */
+			
+			// Обеспечить плавное появление модального окна и оверлея
+			$(".modal-window,.modal-overlay")
+				.fadeIn("slow");
+		},
 
-        // Removes an event from the markup after deletion
-        "removeevent" : function()
-        {
-                // Removes any event with the class "active"
-                $(".active")
-                    .fadeOut("slow", function(){
-                            $(this).remove();
-                        });
-            },
+	// Обеспечивает плавное исчезновение окна и его удаление из DOM
+	"boxout" : function(event) {
+			// Если событе было запущено элементом, который
+			// вызвал эту функцию, предотвратить выполнение
+			// действия, заданного по умолчанию
+			if ( event!=undefined )
+			{
+				event.preventDefault();
+			}
 
-        // Десериализует строку запроса и возвращает объект
-        "deserialize" : function(str){
-                // Разбить каждую пару имя-значение на две части
-                var data = str.split("&"),
+			// Удалить класс "active" из всех ссылок
+			$("a").removeClass("active");
 
-                // Объявить переменные для использования в цикле
-                pairs=[], entry={}, key, val;
+			// Обеспечить плавное исчесзновение модального окна и оверлея,
+			// а затем полностью удалить их из DOM
+			$(".modal-window,.modal-overlay")
+				.fadeOut("slow", function() {
+						$(this).remove();
+					}
+				);
+		},
 
-                // Выполнить цикл по всем парам имя значение
-                for ( x in data )
-                {
-                    // Представим каждую пару в виде массива
-                    pairs = data[x].split("=");
+	// Добавляет новый вопрос в разметку после сохранения
+	"addQuestion" : function(data, formData){
+			// Преобразовать строку запроса в объект
+			var entry = fx.deserialize(formData);
+			
+			console.log("data = ");
+			
+			var post = "action=question_view&question_id="+data;
+			console.log(post);
+			
+			// Добавить новый вопрос на страницу
+			// Передать запрос на формирование представления вопроса на сервер
+			$.ajax({
+				type: "POST",
+				url: processFile,
+				data: post,
+				success: function(form){
+						
+						$(form)
+							.hide()
+							.insertAfter($("div.question"))
+							.delay(1000)
+							.fadeIn("slow");
+					},
+				error: function(msg) {
+						alert(msg);
+					}
+			});
+			
+			/* $("<a>")
+					.hide()
+					.attr("href", "view.php?event_id="+data)
+					.text(entry.event_title)
+					.insertAfter($("strong:contains("+day+")"))
+					.delay(1000)
+					.fadeIn("slow"); */
+		},
 
-                    // Первый элемент - это имя
-                    key = pairs[0];
+	// Removes an event from the markup after deletion
+	"removeevent" : function()
+	{
+			// Removes any event with the class "active"
+			$(".active")
+				.fadeOut("slow", function(){
+						$(this).remove();
+					});
+		},
 
-                    // Второй элемент - это значение
-                    val = pairs[1];
+	// Десериализует строку запроса и возвращает объект
+	"deserialize" : function(str){
+			// Разбить каждую пару имя-значение на две части
+			var data = str.split("&"),
 
-                    // Обратить URL-кодирование и сохранить каждое значение 
-					// в виде свойства объекта
-                    entry[key] = fx.urldecode(val);
-                }
-                return entry;
-            },
+			// Объявить переменные для использования в цикле
+			pairs=[], entry={}, key, val;
 
-        // Декодирует значение строки запроса
-        "urldecode" : function(str) {
-                // Преобразовать знаки + в пробелы
-                var converted = str.replace(/\+/g, ' ');
+			// Выполнить цикл по всем парам имя значение
+			for ( x in data )
+			{
+				// Представим каждую пару в виде массива
+				pairs = data[x].split("=");
 
-                // Выполнить обратное преобразование остальных 
-				// закодированных объектов
-                return decodeURIComponent(converted);
-            }
-    }
+				// Первый элемент - это имя
+				key = pairs[0];
+
+				// Второй элемент - это значение
+				val = pairs[1];
+
+				// Обратить URL-кодирование и сохранить каждое значение 
+				// в виде свойства объекта
+				entry[key] = fx.urldecode(val);
+			}
+			return entry;
+		},
+
+	// Декодирует значение строки запроса
+	"urldecode" : function(str) {
+			// Преобразовать знаки + в пробелы
+			var converted = str.replace(/\+/g, ' ');
+
+			// Выполнить обратное преобразование остальных 
+			// закодированных объектов
+			return decodeURIComponent(converted);
+		}
+}
 
 // Set a default font-size value for dateZoom
 //$.fn.dateZoom.defaults.fontsize = "13px";
@@ -372,14 +398,14 @@ $(".nextCluster").live("click", function(event){
 });
 
 // Отобразить форму для редактирования вопроса в модальном окне
-$(".admin").live("click", function(event){
+$(".queston").live("click", function(event){
 	// Предотвратить переход по ссылке
 	event.preventDefault();
 	
 	// Загрузить атрибут action для обрабатывающего файла
 	var action = "edit_question";
 	
-	// Загрузить форму для редактирования событий и отобразить ее
+	// Загрузить форму для редактирования вопросов и отобразить ее
 	$.ajax({
 		type: "POST",
 		url: processFile,
@@ -408,7 +434,7 @@ $(".admin").live("click", function(event){
 	});
 });
 
-// Наделить кнопку "Отменить" на формах редактирования 
+// Наделить кнопку "Отмена" на формах редактирования 
 // функциями кнопки "Закрыть" для плавного закрытия и исчезовения
 // модального окна и оверлея
 $(".edit-form a:contains(Отмена)").live("click", function(event){
@@ -428,13 +454,13 @@ $(".edit-form input[type=submit]").live("click", function(event){
 		type: "POST",
 		url: processFile,
 		data: formData,
-		success: function(data){
+		success: function(id){
 			
 			// Обеспечить плавное исчезновение модального окна
 			fx.boxout();
-			
+			console.log("после отправки формы");
+			console.log(id);
 			// Добавить вопрос в опросный лист
-			
 			fx.addQuestion(data, formData);
 		},
 		error: function(msg){
@@ -442,5 +468,6 @@ $(".edit-form input[type=submit]").live("click", function(event){
 		}
 	});
 });
+
 
 });

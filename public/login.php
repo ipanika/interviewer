@@ -37,7 +37,7 @@ include_once 'assets/common/header.inc.php';
 			value="user_login" />
 		<input type="submit" name="login_submit"
 			value="Вход" />
-		или <a href="./" class="admin">отменить</a>
+		или <a href="./" class="button">отменить</a>
 		</fieldset>
 	</form>
 </div><!-- end #content -->

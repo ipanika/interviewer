@@ -39,7 +39,7 @@ $objReport = new Report($objDB);
 			<input type="hidden" name="action" value="get_report" />
 			<input type="hidden" name="token" value="<?php echo$_SESSION['token'];?>" />
 			<input type="submit" name="report_submit" value="Сформировать отчет" />
-			<a href="admin.php" class="admin">Отмена</a>
+			<a href="admin.php" class="button">Отмена</a>
 		</fieldset>
 	</form>
 	<?php echo $objReport->displayReport();?>

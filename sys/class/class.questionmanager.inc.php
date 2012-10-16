@@ -52,13 +52,20 @@ class QuestionManager extends DB_Connect
 					$i = 1;
 					foreach( $arrQuestions as $objQuestion )
 					{
-						$strOptionsList = "";
-						foreach ( $objQuestion->arrResponseOptions as $option )
+						if ( $arrEditedInterview['interview_type'] == M_PROFIL)
 						{
-							$strOptionsList .=<<<OPTION_LIST
-							<label>$option->num</label>
-							<label>$option->text</label>
+							$strOptionsList = "<label>Варианты ответа:</label>";
+							foreach ( $objQuestion->arrResponseOptions as $option )
+							{
+								$strOptionsList .=<<<OPTION_LIST
+								<label>$option->num</label>
+								<label>$option->text</label>
 OPTION_LIST;
+							}
+						}
+						if ( $arrEditedInterview['interview_type'] == M_COMPLX )
+						{
+							$strOptionsList = "<label>Шкала ответа от 1 до 7.</label>";
 						}
 						$strQuestionsList .=<<<QUESTION_LIST
 						<p>
@@ -68,7 +75,6 @@ OPTION_LIST;
 								<label>$objQuestion->text</label>
 								<label>Вес показателя:</label>
 								<label>$objQuestion->rate</label>
-								<label>Варианты ответа:</label>
 								$strOptionsList
 							</fieldset>
 						</form>
@@ -92,12 +98,107 @@ QUESTION_LIST;
 					}
 					//вставляем кнопку для добавления нового вопроса
 					$strQuestionsList .=<<<NEW_QUESTION_BUTTON
-					<a href="editQuestion.php" class="admin">Добавить вопрос в дегустационный лист</a>
+					<a href="editQuestion.php" class="admin quest">Добавить вопрос в дегустационный лист</a>
 NEW_QUESTION_BUTTON;
 					
 					return $strQuestionsList;
 				}
 			}
+			else if ($arrEditedInterview['interview_type'] == M_COMPLX) 
+			{
+				/*
+				 * Ищем в базе данных блок вопросов составленный по методу комплексной оценки
+				 */
+				$strQuery = "SELECT 
+								`cluster_id`
+							FROM `clusters`
+							WHERE `cluster_type` = " . M_COMPLX;
+				try
+				{
+					$stmt = $this->_objDB->prepare($strQuery);
+					$stmt->execute();
+					$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+					$stmt->closeCursor();
+					
+					if ( isset($arrResults[0]) )
+					{
+						$clusterId = $arrResults[0]['cluster_id'];
+					}
+					else
+					{
+						$clusterId = NULL;
+					}
+				}
+				catch ( Exception $e )
+				{
+					die ( $e->getMessage() );
+				}
+				if ( $clusterId !== NULL)
+				{
+					$cluster = array(
+						'cluster_id' => $clusterId,
+						'num_questions' => 0
+					);
+				}
+				else
+				{
+					$cluster = array(
+						'num_questions' => 0
+					);
+				}
+			
+			$_SESSION['edited_interview']['cluster'] = $cluster;
+			return <<<NEW_QUESTION_BUTTON
+					<label>Вопросы для комплексной оценки еще не были созданы</label>
+					<a href="editQuestion.php" class="admin quest">Добавить вопрос в дегустационный лист</a>
+NEW_QUESTION_BUTTON;
+			}
+		}
+	}
+	
+	/**
+	 * Метод возвращает массив объектов класса Question принадлежащих блоку 
+	 * вопросов с заданным идентификатором
+	 *
+	 * @param int $clusterId
+	 * @return array
+	 */
+	private function _getQuestionListObjByClusterId($clusterId)
+	{
+		/*
+		 * Получить идентификаторы вопросов из базы даннных
+		 */
+		$strQuery = "SELECT
+						`questions`.`question_id`
+					FROM `questions`
+					WHERE `questions`.`cluster_id` = $clusterId
+					ORDER BY `question_id`";
+						
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+				
+			$arrQuestions = array();
+			$i = 0;
+			foreach($arrResults as $elem )
+			{
+				try
+				{
+					$arrQuestions[$i++] = Question::getQuestionById($elem['question_id'], $this->_objDB);
+				}
+				catch ( Exception $e )
+				{
+					die ($e->getMessage() );
+				}
+			}			
+			return $arrQuestions;
+		}
+		catch ( Exception $e )
+		{
+			die ( $e->getMessage() );
 		}
 	}
 	
@@ -113,20 +214,26 @@ NEW_QUESTION_BUTTON;
 		//получаем вопрос из сеанса
 		$objQuestion = $_SESSION['edited_interview']['cluster']['questions'][$id];
 		
-		//создаем разметку для вывода вариантов ответа
-		$strOptionList = "";
-		$arrOptions = $objQuestion->arrResponseOptions;
-		
-		for ($i = 0; $i < NUM_OF_OPTIONS; $i++)
+		if ( $_SESSION['edited_interview']['interview_type'] == M_PROFIL )
 		{
-			$num = $i + 1;
-			$option = $arrOptions[$i];
-			$strOptionList .=<<<OPTION_LIST
-			<label>$num</label>
-			<label>$option->text</label>
+			//создаем разметку для вывода вариантов ответа
+			$strOptionList = "";
+			$arrOptions = $objQuestion->arrResponseOptions;
+			
+			for ($i = 0; $i < NUM_OF_OPTIONS; $i++)
+			{
+				$num = $i + 1;
+				$option = $arrOptions[$i];
+				$strOptionList .=<<<OPTION_LIST
+				<label>$num</label>
+				<label>$option->text</label>
 OPTION_LIST;
+			}
 		}
-		
+		if ( $_SESSION['edited_interview']['interview_type'] == M_COMPLX )
+		{
+			$strOptionList = "<label>Шкала ответа от 1 до 7.</label>";
+		}
 		$questionNumber = $id + 1;
 		return <<<QUESTION_VIEW
 	<p>
@@ -325,7 +432,7 @@ QUESTION_FORM;
 		/*
 		 * Возвратить ID события
 		 */
-		return $id;
+		//return $id;
 				
 		return TRUE;
 	}

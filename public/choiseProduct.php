@@ -33,7 +33,7 @@ $objProductManager = new ProductManager();
 
 <?php echo $objProductManager->buildProductList(); ?>
 
-<a href="editProduct.php" class="admin">Создать новый образец продукции</a>
+<a href="editProduct.php" class="button">Создать новый образец продукции</a>
 
 </div><!-- end #content -->
 

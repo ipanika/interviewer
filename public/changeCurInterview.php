@@ -38,7 +38,7 @@ $objInterview = new Interview($objDB);
 			<input type="hidden" name="action" value="change_cur_interview" />
 			<input type="hidden" name="token" value="<?php echo $_SESSION['token'];?>" />
 			<input type="submit" name="taster_submit" value="Сделать текущим" />
-			<a href="admin.php" class="admin">Отмена</a>
+			<a href="admin.php" class="button">Отмена</a>
 		</fieldset>
 	</form>
 	

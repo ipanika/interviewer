@@ -30,7 +30,7 @@ $arrActions = array(
 			'object' => 'QuestionManager',
 			'method' => 'processQuestionForm'
 		),
-		'view_question' => array(
+		'question_view' => array(
 			'object' => 'QuestionManager',
 			'method' => 'displayQuestion'
 		)
@@ -44,7 +44,7 @@ if ( isset($arrActions[$_POST['action']]) )
 {
 	$useAction = $arrActions[$_POST['action']];
 	$obj = new $useAction['object']();
-	
+	print_r($_POST);
 	echo $obj->$useAction['method']();
 }
 else
