@@ -100,7 +100,7 @@ GOOD_BYE;
 		<label>$strTasterName</label>
 		<input type="hidden" name="action" value="write_cluster" />
 		<input type="hidden" name="token" value="$_SESSION[token]" />
-		<input type="submit" name="cluster_submit" value="Далее" />
+		<input type="submit" name="cluster_submit" value="Далее" class="nextCluster"/>
 	</form>
 FORM_MARKUP;
 		}	

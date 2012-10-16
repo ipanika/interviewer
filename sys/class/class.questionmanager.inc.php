@@ -188,7 +188,7 @@ QUESTION_VIEW;
 			/*
 			 * Создать разметку для вариантов ответа
 			 */
-			$strOptionList = "<label>Варианты ответа:</label>";
+			$strOptionsList = "<label>Варианты ответа:</label>";
 			$arrOptions = $objQuestion->arrResponseOptions;
 			if (is_array($arrOptions) )
 			{
@@ -207,6 +207,7 @@ OPTION_FORM;
 			else
 			{
 				//если создается новый вопрос
+				$strOptionsList = "<label>Варианты ответа:</label>";
 				for ($i = 0; $i < NUM_OF_OPTIONS; $i++)
 				{
 					$number = $i + 1;
@@ -220,7 +221,7 @@ OPTION_FORM;
 		}
 		if ( $_SESSION['edited_interview']['interview_type'] == M_COMPLX )
 		{
-			$strOptionList = "<label>Шкала ответа от 1 до 7 баллов.</lable>";
+			$strOptionsList = "<label>Шкала ответа от 1 до 7 баллов.</lable>";
 		}
 			
 		return <<<QUESTION_FORM
@@ -228,8 +229,8 @@ OPTION_FORM;
 		<legend>Вопрос №$questionNumber</legend>
 		<fieldset>
 			<label for="question_text">Текст вопроса:</label>
-			<input type="text" name="question_text" 
-				id="question_rate" value="$objQuestion->text"/>
+			<textarea name="question_text" 
+				id="question_text">$objQuestion->text</textarea>
 			<label for="question_rate">Вес показателя:</label>
 			<input type="text" name="question_rate" 
 				id="question_rate" value="$objQuestion->rate"/>
@@ -238,7 +239,7 @@ OPTION_FORM;
 			<input type="hidden" name="action" value="question_edit" />
 			<input type="hidden" name="token" value="$_SESSION[token]" />
 			<input type="submit" name="question_submit" value="$strSubmit" />
-			<a href="editInterview.php" class="admin">Отмена</a>
+			<a href="editInterview.php">Отмена</a>
 		</fieldset>
 	</form>
 QUESTION_FORM;
@@ -320,6 +321,11 @@ QUESTION_FORM;
 		}
 		
 		$_SESSION['edited_interview']['cluster']['questions'][$id] = $objQuestion;
+		
+		/*
+		 * Возвратить ID события
+		 */
+		return $id;
 				
 		return TRUE;
 	}

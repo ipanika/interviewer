@@ -9,7 +9,7 @@ include_once '../sys/core/init.inc.php';
  * Задать название страницы и файлы CSS
  */
 $strPageTitle = "";
-$arrCSSFiles = array('style.css', 'admin.css');
+$arrCSSFiles = array('style.css', 'admin.css', 'ajax.css');
 
 /*
  * Включить начальную часть страницы
