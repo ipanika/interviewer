@@ -751,8 +751,8 @@ CMD_SAVE;
 		// данном опросе
 		if ( $arrEditedInterview['interview_type'] == M_COMPLX )
 		{
-			$objQuestionManager = new QuestionManager(
-			$arrQuestion = $this->_getQuestionListObjByClusterId($clusterId);
+			$objQuestionManager = new QuestionManager($this->_objDB);
+			$arrQuestion = $objQuestionManager->getQuestionListObjByClusterId($clusterId);
 			$strQuery = "INSERT INTO `activequestions`
 							(
 								`interview_id`,

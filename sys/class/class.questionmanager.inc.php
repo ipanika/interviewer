@@ -43,7 +43,7 @@ class QuestionManager extends DB_Connect
 			{
 				if ( isset($arrEditedInterview['cluster']['cluster_id'] ) )
 				{
-					$arrQuestions = $this->_getQuestionListObjByClusterId($arrEditedInterview['cluster']['cluster_id']);
+					$arrQuestions = $this->getQuestionListObjByClusterId($arrEditedInterview['cluster']['cluster_id']);
 					
 					/*
 					 * создать разметку для списка вопросов
@@ -163,7 +163,7 @@ NEW_QUESTION_BUTTON;
 	 * @param int $clusterId
 	 * @return array
 	 */
-	private function _getQuestionListObjByClusterId($clusterId)
+	public function getQuestionListObjByClusterId($clusterId)
 	{
 		/*
 		 * Получить идентификаторы вопросов из базы даннных
@@ -437,50 +437,7 @@ QUESTION_FORM;
 		return TRUE;
 	}
 	
-	/**
-	 * Метод возвращает массив объектов класса Question принадлежащих блоку 
-	 * вопросов с заданным идентификатором
-	 *
-	 * @param int $clusterId
-	 * @return array
-	 */
-	public function getQuestionListObjByClusterId($clusterId)
-	{
-		/*
-		 * Получить идентификаторы вопросов из базы даннных
-		 */
-		$strQuery = "SELECT
-						`questions`.`question_id`
-					FROM `questions`
-					WHERE `questions`.`cluster_id` = $clusterId";
-						
-		try
-		{
-			$stmt = $this->_objDB->prepare($strQuery);
-			$stmt->execute();
-			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
-			$stmt->closeCursor();
-				
-			$arrQuestions = array();
-			$i = 0;
-			foreach($arrResults as $elem )
-			{
-				try
-				{
-					$arrQuestions[$i++] = Question::getQuestionById($elem['question_id'], $this->_objDB);
-				}
-				catch ( Exception $e )
-				{
-					die ($e->getMessage() );
-				}
-			}			
-			return $arrQuestions;
-		}
-		catch ( Exception $e )
-		{
-			die ( $e->getMessage() );
-		}
-	}
+	
 	
 }
  
