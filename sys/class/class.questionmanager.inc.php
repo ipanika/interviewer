@@ -247,7 +247,8 @@ OPTION_LIST;
 			$strOptionList
 			<input type="hidden" name="question_id" value="$id"/>
 			<input type="hidden" name="token" value="$_SESSION[token]" />
-			<input type="submit" name="question_submit" value="Редактировать" />
+			<input type="hidden" name="action" value="edit_question" />
+			<input type="submit" name="question_submit" class="quest" value="Редактировать" />
 		</fieldset>
 	</form>
 	</p>

@@ -114,8 +114,8 @@ PRODUCT_LIST_FORM;
 			<input type="hidden" name="product_id" value="$objProduct->id"/>
 			<input type="hidden" name="action" value="product_edit" />
 			<input type="hidden" name="token" value="$_SESSION[token]" />
-			<input type="submit" name="taster_submit" value="Сохранить" />
-			<a href="choiseProduct.php" class="admin">Отмена</a>
+			<input type="submit" name="taster_submit" class="add_new_product" value="Сохранить" />
+			<a href="choiseProduct.php" class="admin add_new_product_cancel">Отмена</a>
 		</fieldset>
 	</form>
 FORM_MARKUP;

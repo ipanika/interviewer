@@ -1096,7 +1096,7 @@ CLUSTER_FORM;
 					
 					//выводим кнопку для добавления нового продукта
 					$strProductList .=<<<NEW_PRODUCT_BUTTON
-					<a href="choiseProduct.php" class="admin">Добавить образец в дегустационный лист</a>
+					<a href="choiseProduct.php" class="admin add_product">Добавить образец в дегустационный лист</a>
 NEW_PRODUCT_BUTTON;
 					return $strProductList;
 				}
