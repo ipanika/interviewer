@@ -20,6 +20,22 @@ class Product
 	public $name;
 	
 	/**
+	 * Идентификатор группы кондитерских изделий
+	 * к которой принадлежит образец
+	 * 
+	 * @var int
+	 */
+	public $productGroupId;
+	
+	/**
+	 * Идентификатор выпускающего предприятия
+	 * 
+	 * @var int
+	 */
+	public $enterpriseId;
+	
+	
+	/**
 	 * Принимает массив данных об образце продукции
 	 *
 	 * @param array $arrProduct
@@ -31,6 +47,8 @@ class Product
 		{
 			$this->id = $arrProduct['product_id'];
 			$this->name = $arrProduct['product_name'];
+			$this->productGroupId = $arrProduct['productgroup_id'];
+			$this->enterpriseId = $arrProduct['enterprise_id'];
 		}
 		else
 		{

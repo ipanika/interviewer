@@ -1,9 +1,9 @@
 ﻿<?php
 
 /**
- * Обеспечивает работу с группами кондитерских изделий
+ * Обеспечивает работу с предприятиями
  */
-class ProductGroupManager extends DB_Connect
+class EnterpriseManager extends DB_Connect
 {
 	/**
 	 * Создает объект базы
@@ -29,27 +29,27 @@ class ProductGroupManager extends DB_Connect
 	
 	/**
 	 * Метод возвращает разметку для отображения списка зарегистрированнных 
-	 * в системе групп кондитерских изделий
+	 * в системе предприятий
 	 *
 	 * @return string: HTML-строка
 	 */
-	public function buildProductGroupList()
+	public function buildEnterpriseList()
 	{
 		/*
 		 * получить все группы изделий зарегистрированных в системе 
 		 * в виде массива объектов
 		 */
-		$arrGroups = $this->_getProductGroupList();
+		$arrEnterprises = $this->_getEnterpriseList();
 		
-		$strGroupList = "<label><strong>Список групп кондитерских изделий</strong></label>\n<ul>";
+		$strEnterpriseList = "<label><strong>Список выпускающих предприятий:</strong></label>\n<ul>";
 		
-		foreach($arrGroups as $objProductGroup)
+		foreach($arrEnterprises as $objEnteprise)
 		{
-			$strGroupList .= "<li>$objProductGroup->name</li>";
+			$strEnterpriseList .= "<li>$objEnteprise->name</li>";
 		}
-		$strGroupList .= "</ul>";
+		$strEnterpriseList .= "</ul>";
 		
-		return $strGroupList;
+		return $strEnterpriseList;
 	}
 	
 	/**
@@ -64,16 +64,16 @@ class ProductGroupManager extends DB_Connect
 		 * получить все группы изделий зарегистрированных в системе 
 		 * в виде массива объектов
 		 */
-		$arrGroups = $this->_getProductGroupList();
+		$arrEnterprises = $this->_getEnterpriseList();
 		
-		$strGroupList = "<select name=\"productgroup_id\">\n\r";
-		foreach ( $arrGroups as $objGroup )
+		$strEnterpriseList = "<select name=\"enterprise_id\">\n\r";
+		foreach ( $arrEnterprises as $objEnteprise )
 		{
-			$strGroupList .= "<option value=\"$objGroup->id\">$objGroup->name</option>\n\r";
+			$strEnterpriseList .= "<option value=\"$objEnteprise->id\">$objEnteprise->name</option>\n\r";
 		}
-		$strGroupList .="</select><br>";
+		$strEnterpriseList .="</select><br>";
 		
-		return $strGroupList;
+		return $strEnterpriseList;
 	}
 	
 	
@@ -82,15 +82,15 @@ class ProductGroupManager extends DB_Connect
 	 *
 	 * @return array
 	 */
-	private function _getProductGroupList()
+	private function _getEnterpriseList()
 	{
 		/*
 		 * Получить идентификаторы и названия групп изделий из базы даннных
 		 */
 		$strQuery = "SELECT 
-						`productgroup_id`, 
-						`productgroup_name` 
-					FROM `productgroups`";
+						`enterprise_id`, 
+						`enterprise_name` 
+					FROM `enterprises`";
 						
 		try
 		{
@@ -99,20 +99,20 @@ class ProductGroupManager extends DB_Connect
 			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
 			$stmt->closeCursor();
 				
-			$arrProductGroups = array();
+			$arrEnterprises = array();
 			$i = 0;
 			foreach($arrResults as $elem )
 			{
 				try
 				{
-					$arrProductGroups[$i++] = new ProductGroup($elem);
+					$arrEnterprises[$i++] = new Enterprise($elem);
 				}
 				catch ( Exception $e )
 				{
 					die ($e->getMessage() );
 				}
 			}			
-			return $arrProductGroups;
+			return $arrEnterprises;
 		}
 		catch ( Exception $e )
 		{
@@ -127,24 +127,24 @@ class ProductGroupManager extends DB_Connect
 	 *
 	 * @return string: HTML-разметка формы для редактирования 
 	 */
-	public function displayProductGroupForm()
+	public function displayEnterpriseForm()
 	{
 		/*
 		 * Инициализировать переменную, хранящую текст надписи на 
 		 * кнопке отправки формы
 		 */
-		$strSubmit = "Сохранить группу кондитерских изделий";
+		$strSubmit = "Сохранить новое предприятие";
 		
 		return <<<PRODUCT_GROUP_FORM
 	<form action="assets/inc/process.inc.php" method="post">
 	<fieldset>
-		<label for="productgroup_name">Название группы изделий:</label>
-		<input type="text" name="productgroup_name" 
-			id="productgroup_name" value=""/>
-		<input type="hidden" name="action" value="productgroup_edit" />
+		<label for="enterprise_name">Название выпускающего предприятия:</label>
+		<input type="text" name="enterprise_name" 
+			id="enterprise_name" value=""/>
+		<input type="hidden" name="action" value="enterprise_edit" />
 		<input type="hidden" name="token" value="$_SESSION[token]" />
-		<input type="submit" name="productgroup_submit" value="$strSubmit" />
-		<a href="groupList.php" class="button">Отмена</a>
+		<input type="submit" name="enterprise_submit" value="$strSubmit" />
+		<a href="enterpriseList.php" class="button">Отмена</a>
 	</fieldset>
 	</form>
 PRODUCT_GROUP_FORM;
@@ -157,33 +157,33 @@ PRODUCT_GROUP_FORM;
 	 * @return mixed: TRUE в случае успешного завершения или 
 	 * сообщение об ошибке в случае сбоя
 	 */
-	public function processProductGroupForm()
+	public function processEnterpriseForm()
 	{
 		/*
 		 * Выход, если значение "action" задано неправильно
 		 */
-		if ($_POST['action'] !== 'productgroup_edit' )
+		if ($_POST['action'] !== 'enterprise_edit' )
 		{
-			return "Некорректная попытка вызова метода processProductGroupForm";
+			return "Некорректная попытка вызова метода processEnterpriseForm";
 		}
 		
 		/*
 		 * извлечь данные из формы
 		 */
-		$strGroupName = htmlentities($_POST['productgroup_name'], ENT_QUOTES);
+		$strEnterpriseName = htmlentities($_POST['enterprise_name'], ENT_QUOTES);
 		
-		$strQuery = "INSERT INTO `productgroups`
-						(`productgroup_name`)
+		$strQuery = "INSERT INTO `enterprises`
+						(`enterprise_name`)
 					VALUES
 						(:name)";
 				
 		/*
-		 * После привязки данных выполнить запрос создания группы изделий
+		 * После привязки данных выполнить запрос создания предприятия
 		 */
 		try
 		{
 			$stmt = $this->_objDB->prepare($strQuery);
-			$stmt->bindParam(":name", $strGroupName, PDO::PARAM_STR);
+			$stmt->bindParam(":name", $strEnterpriseName, PDO::PARAM_STR);
 			$stmt->execute();
 			$stmt->closeCursor();
 			
@@ -194,7 +194,6 @@ PRODUCT_GROUP_FORM;
 			return $e->getMessage();
 		}
 	}
-		
 }
  
 ?>

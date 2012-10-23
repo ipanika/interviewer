@@ -77,6 +77,12 @@ PRODUCT_LIST_FORM;
 		 */
 		$objProductGroupManager = new ProductGroupManager($this->_objDB);
 		$strProductGroupList = $objProductGroupManager->getDropDownList();
+		
+		/*
+		 * Получить выпадающий список выпускающих предприятий
+		 */
+		$objEnterpriseManager = new EnterpriseManager($this->_objDB);
+		$strEnterpriseList = $objEnterpriseManager->getDropDownList();
 			
 		/**
 		 * Создать разметку
@@ -89,6 +95,8 @@ PRODUCT_LIST_FORM;
 				id="product_name" value=""/>
 			<label>Группа кондитерских изделий:</label>
 			$strProductGroupList
+			<label>Выпускающее предприятие:</label>
+			$strEnterpriseList
 			<input type="hidden" name="action" value="product_edit" />
 			<input type="hidden" name="token" value="$_SESSION[token]" />
 			<input type="submit" name="taster_submit" class="add_new_product" value="Сохранить" />
@@ -113,16 +121,19 @@ FORM_MARKUP;
 		 */
 		$strName = htmlentities($_POST['product_name'], ENT_QUOTES);
 		$productGroupId = (int)$_POST['productgroup_id'];
+		$enterpriseId =  (int)$_POST['enterprise_id'];
 		
 			$strQuery = "INSERT INTO `products`
 							(
 								`product_name`,
-								`productgroup_id`
+								`productgroup_id`,
+								`enterprise_id`
 							)
 						VALUES
 							(
 								:name,
-								$productGroupId
+								$productGroupId,
+								$enterpriseId
 							)";
 		
 		
@@ -156,7 +167,9 @@ FORM_MARKUP;
 	{
 		$strQuery = "SELECT
 						`product_id`,
-						`product_name`
+						`product_name`,
+						`productgroup_id`,
+						`enterprise_id`
 					FROM `products`";
 		
 		/*

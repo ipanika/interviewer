@@ -66,10 +66,20 @@ CREATE TABLE IF NOT EXISTS `interviewer`.`responseOptions` (
 CREATE TABLE IF NOT EXISTS `interviewer`.`products` (
 	`product_id`	INT(11) NOT NULL AUTO_INCREMENT,
 	`product_name`	VARCHAR(100),
-        `productgroup_id`	INT(11),
+    `productgroup_id`	INT(11),
+    `enterprise_id`	INT(11),
 	
 	PRIMARY KEY (`product_id`),
-        FOREIGN KEY (`productgroup_id`) REFERENCES productgroups(`productgroup_id`)
+        FOREIGN KEY (`productgroup_id`) REFERENCES productgroups(`productgroup_id`),
+        FOREIGN KEY (`enterprise_id`) REFERENCES enterprises(`enterprise_id`)
+) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+
+/*таблица для хранения выпускающих предприятий*/
+CREATE TABLE IF NOT EXISTS `interviewer`.`enterprises` (
+	`enterprise_id`	INT(11) NOT NULL AUTO_INCREMENT,
+	`enterprise_name`	VARCHAR(100),
+	
+	PRIMARY KEY (`enterprise_id`)
 ) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;
 
 

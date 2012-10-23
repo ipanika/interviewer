@@ -106,6 +106,11 @@ $arrActions = array(
 			'object' => 'ProductGroupManager',
 			'method' => 'processProductGroupForm',
 			'header' => 'Location: ../../groupList.php'
+		),
+		'enterprise_edit' => array(
+			'object' => 'EnterpriseManager',
+			'method' => 'processEnterpriseForm',
+			'header' => 'Location: ../../enterpriseList.php'
 		)
 	);
 
