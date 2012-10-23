@@ -579,8 +579,6 @@ PRODUCT_RES;
 				<th colspan="7">Количество участников дегустации, поставивших оценки:</th>
 				<td rowspan="2">Итого, участников</td>
 				<td rowspan="2">Средний балл</td>
-				<td rowspan="2">Оценка с учетом весомости</td>
-				<td rowspan="2">Общая оценка</td>
 				<td rowspan="2">Комментарии участников</td>
 			</tr>
 			<tr>
@@ -700,7 +698,6 @@ REP;
 				<td>$scores[7]</td>
 				<td>$arrRow[numOfTasters]</td>
 				<td>$arrRow[average]</td>
-				<td>$arrRow[averToRate]</td>
 				<td>$arrRow[comment]</td>
 			</tr>
 PRODUCT_RES;
@@ -730,8 +727,6 @@ PRODUCT_RES;
 				<td>$scores[7]</td>
 				<td>$arrRow[numOfTasters]</td>
 				<td>$arrRow[average]</td>
-				<td>$arrRow[averToRate]</td>
-				<td rowspan="$numQuest">$overallRating</td>
 				<td>$arrRow[comment]</td>
 			</tr>
 PRODUCT_RES;
