@@ -66,9 +66,11 @@ CREATE TABLE IF NOT EXISTS `interviewer`.`responseOptions` (
 CREATE TABLE IF NOT EXISTS `interviewer`.`products` (
 	`product_id`	INT(11) NOT NULL AUTO_INCREMENT,
 	`product_name`	VARCHAR(100),
+        `productgroup_id`	INT(11),
 	
-	PRIMARY KEY (`product_id`)
-) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;# MySQL returned an empty result set (i.e. zero rows).
+	PRIMARY KEY (`product_id`),
+        FOREIGN KEY (`productgroup_id`) REFERENCES productgroups(`productgroup_id`)
+) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;
 
 
 /* таблица обеспечивающивающая связь конкретного образца продукции
@@ -287,3 +289,12 @@ FROM `current_interviews`
 ORDER BY `current_interviews`.`current_interview_date` DESC
 )
 LIMIT 1;
+
+
+/*таблица для хранения групп кондитерских изделий*/
+CREATE TABLE IF NOT EXISTS `interviewer`.`productgroups` (
+	`productgroup_id`		INT(11) NOT NULL AUTO_INCREMENT,
+	`productgroup_name`	VARCHAR(100) DEFAULT NULL,
+	
+	PRIMARY KEY (`productgroup_id`)
+) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;

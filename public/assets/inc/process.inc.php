@@ -101,6 +101,11 @@ $arrActions = array(
 			'object' => 'Report',
 			'method' => 'processChoiseInterview',
 			'header' => 'Location: ../../report.php'
+		),
+		'productgroup_edit' => array(
+			'object' => 'ProductGroupManager',
+			'method' => 'processProductGroupForm',
+			'header' => 'Location: ../../groupList.php'
 		)
 	);
 

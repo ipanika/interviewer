@@ -18,7 +18,7 @@ body {
     -webkit-box-shadow: 0 0 14px #123;
     box-shadow: 0 0 14px #123;
 }
-
+/* 
 h2,p {
     margin: 0 auto 14px;
     text-align: center;
@@ -117,4 +117,4 @@ li a:hover {
     -moz-box-shadow: 0 0 6px #789;
     -webkit-box-shadow: 0 0 6px #789;
     box-shadow: 0 0 6px #789;
-}
+} */

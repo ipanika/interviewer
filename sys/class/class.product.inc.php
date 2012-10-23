@@ -13,7 +13,7 @@ class Product
 	public $id;
 	
 	/**
-	 * Текст ответа
+	 * Название образца
 	 * 
 	 * @var string
 	 */

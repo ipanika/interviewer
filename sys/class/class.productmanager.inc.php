@@ -42,7 +42,7 @@ class ProductManager extends DB_Connect
 		$arrProducts = $this->_createProductObj(); 
 		
 		/*
-		 * Создать HTML-разметку выпадающего списка дегустаторов
+		 * Создать HTML-разметку выпадающего списка образцов продукции
 		 */
 		$strProductList = "<select name=\"product_id\">\n\r";
 		foreach ( $arrProducts as $objProduct )
@@ -64,44 +64,20 @@ PRODUCT_LIST_FORM;
 	}
 	
 	/**
-	 * Генерирует форму, позволяющую редактировать данные о
-	 * дегустаторе или создавать нового в системе.
+	 * Генерирует форму, позволяющую создавать новый образец продукции
+	 * в системе.
 	 *
 	 * @return string: HTML-разметка формы для редактирования 
-	 * информации о дегустаторе
+	 * информации об образце
 	 */
 	public function displayProductForm()
 	{
-		/**
-		 * Проведить, был ли передан идентификатор
+		/*
+		 * Получить выпадающий список групп кондитерских изделий
 		 */
-		if ( isset($_POST['product_id']) )
-		{
-			// Принудительно задать целочисленный тип для
-			// обеспечения безопасности данных
-			$id = (int) $_POST['product_id'];
-		}
-		else
-		{
-			$id = NULL;
-		}
-		
-		/**
-		 * Если был передан ID, загрузить соотвествующую информацию
-		 */
-		if ( !empty($id) )
-		{
-			$objProduct = $this->getProductById($id);
+		$objProductGroupManager = new ProductGroupManager($this->_objDB);
+		$strProductGroupList = $objProductGroupManager->getDropDownList();
 			
-			/**
-			 * Если не был возвращен объект, возвратить NULL 
-			 */
-			if ( !is_object($objProduct) )
-			{
-				return NULL;
-			}
-		}
-		
 		/**
 		 * Создать разметку
 		 */
@@ -110,8 +86,9 @@ PRODUCT_LIST_FORM;
 		<fieldset>
 			<label for="product_name">Название образца продукции:</label>
 			<input type="text" name="product_name" 
-				id="product_name" value="$objProduct->surname"/>
-			<input type="hidden" name="product_id" value="$objProduct->id"/>
+				id="product_name" value=""/>
+			<label>Группа кондитерских изделий:</label>
+			$strProductGroupList
 			<input type="hidden" name="action" value="product_edit" />
 			<input type="hidden" name="token" value="$_SESSION[token]" />
 			<input type="submit" name="taster_submit" class="add_new_product" value="Сохранить" />
@@ -135,30 +112,19 @@ FORM_MARKUP;
 		 * извлечь данные из формы
 		 */
 		$strName = htmlentities($_POST['product_name'], ENT_QUOTES);
+		$productGroupId = (int)$_POST['productgroup_id'];
 		
-		/*
-		 * Если id не был передан, создать новый образец продукции в системе
-		 */
-		if ( empty($_POST['product_id']) )
-		{
 			$strQuery = "INSERT INTO `products`
-							(`product_name`)
+							(
+								`product_name`,
+								`productgroup_id`
+							)
 						VALUES
-							(:name)";
-		}
-		/*
-		 * Обновить информацию об образце, если она редактировалась
-		 */
-		else
-		{
-			// Привести id образца к целочисленному типу в интересах
-			// безопасности
-			$id = (int) $_POST['product_id'];
-			$strQuery = "UPDATE `products`
-						SET
-							`product_name`=:name
-						WHERE `taster_id`=$id";
-		}
+							(
+								:name,
+								$productGroupId
+							)";
+		
 		
 		/*
 		 * После привязки данных выполнить запрос создания или 
