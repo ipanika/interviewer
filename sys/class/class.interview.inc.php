@@ -471,7 +471,7 @@ FORM_MARKUP;
 	/**
 	 * Загружает информацию о текущем опросе в массив
 	 *
-	 * @return array: массив с информацией о текущем опросе
+	 * @return array: массив с информацией о текущем опросе или NULL
 	 */
 	private function _getCurInterview()
 	{
@@ -480,8 +480,8 @@ FORM_MARKUP;
 						`interviews`.`interview_id`,
 						`interviews`.`interview_name`,
 						`current_interviews`.`current_interview_date` 
-					FROM `interviews`
-					LEFT JOIN `current_interviews` 
+					FROM `current_interviews`
+					LEFT JOIN `interviews` 
 						ON `interviews`.`interview_id` = `current_interviews`.`interview_id`
 					ORDER BY `current_interviews`.`current_interview_date` DESC
 					LIMIT 1";
@@ -493,7 +493,11 @@ FORM_MARKUP;
 			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
 			$stmt->closeCursor();
 			
-			return $arrResults[0];
+			if ( isset($arrResults[0]) )
+			{
+				return $arrResults[0];
+			}
+			return NULL;
 		}
 		catch ( Exception $e )
 		{
@@ -685,21 +689,25 @@ CMD_SAVE;
 		}
 		
 		//записываем название дегустационного листа в базу данных
-		//вид опросного листа
+		//вид опросного листа и идентификатор предприятия для которого проводится опрос
 		$type = $arrEditedInterview['interview_type'];
 		$strInterviewName = $arrEditedInterview['interview_name'];
+		$enterpriseId = $arrEditedInterview['enterprise']['enterprise_id'];
 		
 		$strQuery = "INSERT INTO `interviews`
 							(
 								`interview_name`,
 								`interview_type`,
-								`cluster_id`
+								`cluster_id`,
+								`enterprise_id`
 							)
 							VALUES
 							(
 								:name,
 								:type,
-								:cluster_id
+								:cluster_id,
+								$enterpriseId
+								
 							)";
 		
 		try
@@ -807,6 +815,7 @@ CMD_SAVE;
 		{
 			$arrEditedInterview = $_SESSION['edited_interview'];
 			$strInterviewName = $arrEditedInterview['interview_name'];
+			$strEnterpriseName = $arrEditedInterview['enterprise']['enterprise_name'];
 			switch ($arrEditedInterview['interview_type'] )
 			{
 				case M_TRIANG:
@@ -827,6 +836,9 @@ CMD_SAVE;
 <label>Название дегустационного листа:</label>
 <input type="text" name="interview_name"
 			id="interview_name" value="$strInterviewName" readonly/>
+<label>Выпускающее предприятие:</label>
+<input type="text" name="enterprise_name"
+			id="enterprise_name" value="$strEnterpriseName" readonly/>
 <label>Вариант опроса:</label>
 <input type="text" name="interview_type"
 			id="interview_type" value="$strInterviewType" readonly/>
@@ -834,11 +846,17 @@ HEADER_FORM;
 		}
 		else
 		{
+			// список для выбора выпускающего предприятия, для которого проводится опрос
+			$objEnterpriseManager = new EnterpriseManager($this->_objDB);
+			$strEnterpriseList = $objEnterpriseManager->getDropDownList();
+			// список для выбора типа опросного листа
+			// <option value=\"".M_TRIANG."\">Метод треугольника</option>
+			// <option value=\"".M_CONSUM."\">Потребительское тестирование</option>
 			$strInterviewType = "<select name=\"interview_type\">
-									<option value=\"".M_TRIANG."\">Метод треугольника</option>
+									
 									<option value=\"".M_PROFIL."\">Профильный метод</option>
 									<option value=\"".M_COMPLX."\">Метод комплексной оценки</option>
-									<option value=\"".M_CONSUM."\">Потребительское тестирование</option>
+									
 								</select>";
 			//выводим форму для ввода данных
 			return <<<HEADER_FORM
@@ -848,6 +866,8 @@ HEADER_FORM;
 			id="interview_name" value="" />
 		<label>Вариант опроса:</label>
 		$strInterviewType
+		<label>Выпускающее предприятие</label>
+		$strEnterpriseList
 		<input type="hidden" name="action" value="new_interview" />
 		<input type="hidden" name="token" value="$_SESSION[token]" />
 		<input type="submit" name="next_submit" value="Продолжить" />
@@ -1027,13 +1047,7 @@ CLUSTER_FORM;
 						`clusters`.`cluster_id`, 
 						`clusters`.`cluster_name`
 					FROM `clusters`
-					WHERE `clusters`.`cluster_id`
-					IN (
-						SELECT 
-							`interviews`.`cluster_id`
-						FROM `interviews`
-						WHERE `interviews`.`interview_type` = ".M_PROFIL
-					.")";
+					WHERE `clusters`.`cluster_type` = ".M_PROFIL;
 						
 		try
 		{
@@ -1042,7 +1056,7 @@ CLUSTER_FORM;
 			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
 			$stmt->closeCursor();
 			
-			$strClusterList = "<select name=\"cluster_id\">\n\t<option disabled selected>Выберите вид дегустационного листа</option>";
+			$strClusterList = "<select name=\"cluster_id\">";
 			foreach($arrResults as $elem )
 			{
 				$strClusterList .= "\n\t<option value=\"$elem[cluster_id]\">$elem[cluster_name]</option>";
@@ -1155,10 +1169,19 @@ NEW_PRODUCT_BUTTON;
 		 */
 		$strInterviewName =  htmlentities($_POST['interview_name'], ENT_QUOTES);
 		$intInterviewType = (int) $_POST['interview_type'];
+		$enterpriseId = (int)$_POST['enterprise_id'];
+		
+		$objEnterpriseManager = new EnterpriseManager($this->_objDB);
+		$strEnterpriseName = $objEnterpriseManager->getEnterpriseById($enterpriseId)->name;
+		$arrEnterprise = array(
+				'enterprise_id' => $enterpriseId,
+				'enterprise_name'=> $strEnterpriseName
+				);
 		
 		$arrEditedInterview = array(
 					'interview_name' => $strInterviewName,
-					'interview_type' => $intInterviewType
+					'interview_type' => $intInterviewType,
+					'enterprise' => $arrEnterprise
 			);
 		
 		if ( $intInterviewType == M_COMPLX)

@@ -78,11 +78,11 @@ class EnterpriseManager extends DB_Connect
 	
 	
 	/**
-	 * Метод возвращает массив объектов класса Group зарегистрированных в системе
+	 * Метод возвращает массив объектов класса Enterprise зарегистрированных в системе
 	 *
 	 * @return array
 	 */
-	private function _getEnterpriseList()
+	private function _getEnterpriseList($id=NULL)
 	{
 		/*
 		 * Получить идентификаторы и названия групп изделий из базы даннных
@@ -91,6 +91,15 @@ class EnterpriseManager extends DB_Connect
 						`enterprise_id`, 
 						`enterprise_name` 
 					FROM `enterprises`";
+		
+		/*
+		 * Если передан идентификатор, добавить условие
+		 */
+		if ( $id != NULL )
+		{
+			$strQuery .= "\nWHERE `enterprise_id` = $id
+						 LIMIT 1";
+		}
 						
 		try
 		{
@@ -119,6 +128,18 @@ class EnterpriseManager extends DB_Connect
 			die ( $e->getMessage() );
 		}
 	}
+	
+	/**
+	 * Возвращает объект Enterprise с заданным идентификотором
+	 *
+	 * @param int: идентификатор объекта
+	 * @return obj
+	 */
+	public function getEnterpriseById($id)
+	{
+		return $this->_getEnterpriseList($id)[0];
+	}
+	
 	
 	
 	

@@ -32,14 +32,15 @@ class ProductManager extends DB_Connect
 	 * выпадающего списка. Список формируется из всех образцов 
 	 * зарегистрированных в системе
 	 *
+	 * @param int: идентификатор образца
 	 * @return string: HTML-разметка
 	 */
-	public function buildProductList()
+	public function buildProductList($enterpriseId)
 	{
 		/*
 		 * Получаем список всех образцов продуктов зарегистрированных в системе
 		 */
-		$arrProducts = $this->_createProductObj(); 
+		$arrProducts = $this->_createProductObj($enterpriseId); 
 		
 		/*
 		 * Создать HTML-разметку выпадающего списка образцов продукции
@@ -163,7 +164,7 @@ FORM_MARKUP;
 	 * используемый для фильтрации результатов
 	 * @return array: массив образцов, извлеченных из базы данных
 	 */
-	private function _loadProductData($id=NULL)
+	private function _loadProductData($id=NULL, $enterpriseId=NULL)
 	{
 		$strQuery = "SELECT
 						`product_id`,
@@ -171,27 +172,32 @@ FORM_MARKUP;
 						`productgroup_id`,
 						`enterprise_id`
 					FROM `products`";
+					
+		// накладываемые условия на выборку
+		$strCondition1 = "1";
+		$strCondition2 = "1";
 		
 		/*
-		 * Если предоставлен идентификатор дегустатора, добавить предложение
-		 * WHERE, чтобы запрос возвращал только это событие
+		 * Если передан идентификатор предприятия добавить в условие отбора
+		 */
+		if ( !empty($enterpriseId) )
+		{
+			$strCondition1 = " `enterprise_id` = $enterpriseId";
+		}
+		/*
+		 * Если предоставлен идентификатор образца , добавить предложение
+		 * WHERE, чтобы запрос возвращал только один объект
 		 */
 		if ( !empty($id) )
 		{
-			$strQuery .= "WHERE `product_id`=:id LIMIT 1";
+			$strCondition2 = "`product_id`= $id LIMIT 1";
 		}
+		
+		$strQuery .= "\nWHERE $strCondition1 AND $strCondition2";
 		
 		try
 		{
 			$stmt = $this->_objDB->prepare($strQuery);
-			
-			/*
-			 * Привязать параметр, если был передан идентификатор
-			 */
-			if ( !empty($id) )
-			{
-				$stmt->bindParam(":id", $id, PDO::PARAM_INT);
-			}
 			
 			$stmt->execute();
 			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -206,16 +212,18 @@ FORM_MARKUP;
 	}
 	
 	/**
-	 * Загружает все образцы продукции, зарегистрированных в системе, в массив
+	 * Загружает образцы продукции, зарегистрированных в системе, в массив
+	 * при этом накладывается фильтр по выпускающему предприятию
 	 * 
-	 * @return array: информация о дегустаторах
+	 * @param int: идентификатор выпускающего предприятия
+	 * @return array: информация о образцах продукции
 	 */
-	private function _createProductObj($id=NULL)
+	private function _createProductObj($enterpriseId)
 	{
 		/*
-		 * Загрузить массив информации о дегустаторах
+		 * Загрузить массив информации о образцах
 		 */
-		$arrProducts = $this->_loadProductData($id);
+		$arrProducts = $this->_loadProductData(NULL,$enterpriseId);
 		
 		/*
 		 * Создать новый массив объектов

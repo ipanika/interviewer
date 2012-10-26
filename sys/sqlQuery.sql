@@ -21,10 +21,12 @@ CREATE TABLE IF NOT EXISTS `interviewer`.`interviews` (
 	`interview_name`	VARCHAR(100) DEFAULT NULL,
 	`interview_type`	INT(1),
 	`cluster_id`		INT(11),
+    `enterprise_id`		INT(11),
 	
 	PRIMARY KEY (`interview_id`),
-	FOREIGN KEY (`cluster_id`) REFERENCES clusters(`cluster_id`)
-) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;# MySQL returned an empty result set (i.e. zero rows).
+	FOREIGN KEY (`cluster_id`) REFERENCES clusters(`cluster_id`),
+        FOREIGN KEY (`enterprise_id`) REFERENCES enterprises(`enterprise_id`)
+) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;
 
 
 /*таблица для хранения вопросов*/
