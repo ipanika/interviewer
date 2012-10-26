@@ -84,15 +84,22 @@ class Report extends DB_Connect
 		/*
 		 * Определить тип опроса
 		 */
-		$interviewType = $this->getInterviewType($interviewId);
+		$arrInterview = $this->getInterview($interviewId);
+		
+		$interviewType = $arrInterview['interview_type'];
+		$strInterviewName = $arrInterview['interview_name'];
+		/*
+		 * Задать шапку отчета
+		 */
+		$strHeader = "<label>Отчет по опросному листу: $strInterviewName</label><br>";
 		
 		switch($interviewType)
 		{
 			case M_PROFIL:
-				return $this->buildProfilReport($interviewId);
+				return $strHeader . $this->buildProfilReport($interviewId);
 				break;
 			case M_COMPLX:
-				return $this->buildComplxReport($interviewId);
+				return $strHeader . $this->buildComplxReport($interviewId);
 				break;
 			case M_CONSUM:
 				break;
@@ -170,10 +177,11 @@ class Report extends DB_Connect
 	 * @return mixed: тип опроса или NULL если в базе данных
 	 * 				не найден опрос с переданным идентификотором
 	 */
-	private function getInterviewType($interviewId)
+	private function getInterview($interviewId)
 	{
 		$strQuery = "SELECT
-						`interviews`.`interview_type`
+						`interviews`.`interview_type`,
+						`interviews`.`interview_name`
 					FROM `interviews`
 					WHERE `interviews`.`interview_id` = $interviewId
 					LIMIT 1";
@@ -187,7 +195,7 @@ class Report extends DB_Connect
 			
 			if ( isset($arrResults[0]) )
 			{
-				return $arrResults[0]['interview_type'];
+				return $arrResults[0];
 			}
 			else 
 			{

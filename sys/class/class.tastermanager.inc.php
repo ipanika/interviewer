@@ -309,8 +309,14 @@ FORM_MARKUP;
 		 */
 		if ( !empty($id) )
 		{
-			$strQuery .= "WHERE `taster_id`=:id LIMIT 1";
+			$strQuery .= " WHERE `taster_id`=:id ";
 		}
+		
+		/*
+		 * Добавить условие сортировки, чтобы последний добавленный пользователь
+		 * попадал в начало списка
+		 */
+		$strQuery .= " ORDER BY `taster_id` DESC";
 		
 		try
 		{

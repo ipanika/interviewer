@@ -435,6 +435,7 @@ FORM_MARKUP;
 		/*
 		 * Получаем идентификатор дегустатора из формы
 		 */
+		print_r($_POST);
 		if ( !isset($_POST['taster_id']) )
 		{
 			// пользователь не выбрал себя из списка
@@ -464,6 +465,8 @@ FORM_MARKUP;
 		$_SESSION['taster_surname'] = $objCurTaster->surname;
 		$_SESSION['interview_id'] = $arrInterview['interview_id'];
 		$_SESSION['interview_type'] = $arrInterview['interview_type'];
+		
+		print_r($_SESSION);
 		
 		return TRUE;
 	}

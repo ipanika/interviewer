@@ -20,10 +20,10 @@ include_once 'assets/common/header.inc.php';
  * Проверяем авторизовался ли пользователь
  */
 if ( !isset($_SESSION['taster_id']) )
-{
+{	
 	//отправляем пользователя на главную страницу
-	header("Location: ./");
-	exit;
+	//header("Location: ./");
+	//exit;
 }
 
 /*
