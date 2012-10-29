@@ -37,6 +37,12 @@ class ProductManager extends DB_Connect
 	 */
 	public function buildProductList($enterpriseId)
 	{
+	
+		// попытка получить идентификатор предприятия если он не был передан в параметрах вызова
+		if ( empty($enterpriseId) )
+		{
+			$enterpriseId = $_SESSION['edited_interview']['enterprise']['enterprise_id'];
+		}
 		/*
 		 * Получаем список всех образцов продуктов зарегистрированных в системе
 		 */
