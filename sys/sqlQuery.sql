@@ -6,6 +6,8 @@
 CREATE TABLE IF NOT EXISTS `interviewer`.`clusters` (
 	`cluster_id`		INT(11) NOT NULL AUTO_INCREMENT,
 	`cluster_name`		VARCHAR(80),
+	`cluster_numQuestions` INT(3),
+	`cluster_type`		INT(1),
 	
 	PRIMARY KEY (`cluster_id`)
 ) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;
