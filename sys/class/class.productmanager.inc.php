@@ -95,7 +95,7 @@ PRODUCT_LIST_FORM;
 		 * Создать разметку
 		 */
 		return <<<FORM_MARKUP
-	<form action="assets/inc/process.inc.php" method="post">
+	<form action="assets/inc/process.inc.php" method="post" enctype="multipart/form-data">
 		<fieldset>
 			<label for="product_name">Название образца продукции:</label>
 			<input type="text" name="product_name" 
@@ -104,6 +104,11 @@ PRODUCT_LIST_FORM;
 			$strProductGroupList
 			<label>Выпускающее предприятие:</label>
 			$strEnterpriseList
+			<label>Документы связанные с образцом:</label>
+			<input name="file[]" type="file" accept="image/jpeg,image/png,image/gif">
+			<input name="file[]" type="file" accept="image/jpeg,image/png,image/gif">
+			<input name="file[]" type="file" accept="image/jpeg,image/png,image/gif">
+			<input name="file[]" type="file" accept="image/jpeg,image/png,image/gif">
 			<input type="hidden" name="action" value="product_edit" />
 			<input type="hidden" name="token" value="$_SESSION[token]" />
 			<input type="submit" name="taster_submit" class="add_new_product" value="Сохранить" />
@@ -154,6 +159,24 @@ FORM_MARKUP;
 			$stmt->bindParam(":name", $strName, PDO::PARAM_STR);
 			$stmt->execute();
 			$stmt->closeCursor();
+			
+			/*
+			 * Получить идентификатор только что созданного продукта
+			 */
+			$id = $this->_objDB->lastInsertId();
+			/*
+			 * Создать директорию для хранения связанных с образцом документов
+			 */
+			$strDirName = '../../../uploads/product'.$id;
+			mkdir($strDirName, 0777);
+			
+			/*
+			 * Скопировать загруженные файлы в каталог продукта
+			 */
+			for ($i=0; $i<count($_FILES['file']['tmp_name']);$i++)
+			{
+				move_uploaded_file($_FILES['file']['tmp_name'][$i], $strDirName.'/'. $_FILES['file'] ['name'][$i]);
+			}
 			
 			return TRUE;
 		}
