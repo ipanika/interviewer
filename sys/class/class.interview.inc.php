@@ -563,12 +563,33 @@ CANCEL;
 CHECK_QUEST;
 					}
 				}
+				// если опрос по методу треугольника - выводим меню для определения порядка следования образцов
+				if ($arrEditedInterview['interview_type'] == M_TRIANG )
+				{
+					$strOrderProduct =<<<ORDER_PRODUCT
+						<br>
+						<label>Порядок следования образцов:</label>
+						1:<select name="pos1" size="1">
+							<option value="A">A</option>
+							<option value="B">B</option>
+						</select><br>
+						2:<select name="pos2" size="1">
+							<option value="A">A</option>
+							<option value="B">B</option>
+						</select><br>
+						3:<select name="pos3" size="1">
+							<option value="A">A</option>
+							<option value="B">B</option>
+						</select><br>
+ORDER_PRODUCT;
+					$strButtonClass = " class=\"check_order\" ";
+				}
 				return <<<CMD_SAVE
 	<form action="assets/inc/process.inc.php" method="post" >
-		$strCheckQuestion<br>
+		$strCheckQuestion$strOrderProduct<br>
 		<input type="hidden" name="action" value="write_interview" />
 		<input type="hidden" name="token" value="$_SESSION[token]" />
-		<input type="submit" name="cancel_submit" value="Сохранить дегустационный лист" />
+		<input $strButtonClass type="submit" name="cancel_submit" value="Сохранить дегустационный лист" />
 	</form>
 CMD_SAVE;
 			}
@@ -858,6 +879,7 @@ HEADER_FORM;
 									
 									<option value=\"".M_PROFIL."\">Профильный метод</option>
 									<option value=\"".M_COMPLX."\">Метод комплексной оценки</option>
+									<option value=\"".M_TRIANG."\">Метод комплексной оценки</option>
 									
 								</select>";
 			//выводим форму для ввода данных
@@ -892,6 +914,32 @@ HEADER_FORM;
 		 */
 		if ( isset($_SESSION['edited_interview']) )
 		{
+			// если создается опрос по методу треугольника
+			if ( $_SESSION['edited_interview']['interview_type'] == M_TRIANG )
+			{
+				// вывести разметку для ввода текста вопроса и определения порядка
+				// следования образцов
+				if (isset($_SESSION['edited_interview']['question_text']) )
+				{
+					$strQuestionText = $_SESSION['edited_interview']['question_text'];
+					return <<<TRIANGq
+					<label>Текст вопроса:</label>
+					<textarea name="question_text" 
+							id="question_text" readonly>$strQuestionText</textarea>
+TRIANGq;
+				}
+				return <<<TRIANG
+	<form action="assets/inc/process.inc.php" method="post">
+		<label for="question_text">Текст вопроса:</label>
+		<textarea name="question_text" 
+				id="question_text"></textarea>
+		
+		<input type="hidden" name="action" value="new_triang_quest" />
+		<input type="hidden" name="token" value="$_SESSION[token]" />
+		<input type="submit" name="next_submit" value="Далее" />
+	</form>
+TRIANG;
+			}
 			//если создается опрос по профильной схеме
 			if ( $_SESSION['edited_interview']['interview_type'] == M_PROFIL )
 			{
@@ -949,6 +997,18 @@ CLUSTER_FORM;
 			//пустую строку
 			return "";
 		}
+	}
+	
+	/**
+	 * Метод записывает в сеансе текст вопроса для метода треугольника
+	 *
+	 * @return mixed: TRUE в случае успеха или сообщение об ошибке 
+	 */
+	public function processTriangQuestForm()
+	{
+		$_SESSION['edited_interview']['question_text'] = $_POST['question_text'];
+		$_SESSION['edited_interview']['num_product'] = 0;
+		return TRUE;
 	}
 	
 	/**
@@ -1094,7 +1154,30 @@ CLUSTER_FORM;
 		// список уже добавленных продуктов и форму для добавления еще одного.
 		if ( isset($_SESSION['edited_interview']) )
 		{
+			// если редактируется опрос по методу треугольника
 			$arrEditedInterview = $_SESSION['edited_interview'];
+			if($arrEditedInterview['interview_type'] == M_TRIANG )
+			{
+				$strProductList = "";
+				$arrProducts = $arrEditedInterview['products'];
+				$i = 1;
+				foreach($arrProducts as $product)
+				{
+					$strProductCode = $i == 1 ? "A" : "B";
+					$strProductList .= "<label>Образец $strProductCode: $product->name</label>";
+					$i++;
+				}
+				// Проверить сколько образцов уже добавлено в дегустационный лист
+				if ( $arrEditedInterview['num_products'] < 2)
+				{
+					// если количество образцов меньше двух вывести кнопку добавления 
+					// образца в дегустационный лист
+					$strProductList .=<<<NEW_PRODUCT_BUTTON
+					<a href="choiseProduct.php" class="admin add_product">Добавить образец в дегустационный лист</a>
+NEW_PRODUCT_BUTTON;
+				}
+				return  $strProductList;
+			}
 			if ( isset($arrEditedInterview['cluster']) )
 			{
 				if ( isset($arrEditedInterview['cluster']['num_questions'] ) 

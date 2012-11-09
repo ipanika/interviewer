@@ -111,7 +111,13 @@ $arrActions = array(
 			'object' => 'EnterpriseManager',
 			'method' => 'processEnterpriseForm',
 			'header' => 'Location: ../../enterpriseList.php'
+		),
+		'new_triang_quest' => array(
+			'object' => 'Interview',
+			'method' => 'processTriangQuestForm',
+			'header' => 'Location: ../../editInterview.php'
 		)
+		
 	);
 
 /*
