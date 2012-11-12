@@ -53,7 +53,21 @@ class Interview extends DB_Connect
 		
 		if ( $this->_type == M_TRIANG )
 		{
+			if ( isset($_SESSION['end']) )
+			{
+				//возвращаем разметку с благодарностью и кнопкой закончить опрос
+				//завершаем сессию
+				session_destroy();
+				return <<<GOOD_BYE
+				<form action="assets/inc/process.inc.php" method="post">
+				
+					<input type="submit" value="Закончить опрос" />
+				</form>
+GOOD_BYE;
+			}
+			$_SESSION['end'] = TRUE;
 			//генерируем разметку для метода треугольника
+			return $this->_getTriangle();
 		}
 		else
 		{
@@ -104,6 +118,130 @@ GOOD_BYE;
 	</form>
 FORM_MARKUP;
 		}	
+	}
+	
+	/**
+	 * Возвращает разметку для вопроса треугольника
+	 *
+	 * @return string: HTML-разметка
+	 */
+	private function _getTriangle()
+	{
+		/*
+		 * Получаем идентификатор текущего опроса
+		 */
+		$interviewId = (int)$_SESSION['interview_id'];
+		
+		$strTasterName = $this->_curTasterName();
+		
+		// получить текст вопроса
+		$strQuery = "SELECT  
+						`questions`.`question_text`
+					FROM `questions`
+					LEFT JOIN `clusters`
+						ON `clusters`.`cluster_id` = `questions`.`cluster_id`
+					LEFT JOIN `interviews`
+						ON `clusters`.`cluster_id` = `interviews`.`cluster_id`
+					WHERE `interviews`.`interview_id` = $interviewId
+					LIMIT 1";
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrResult = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+		}
+		catch (Exception $e)
+		{
+			die ($e->getMessage() );
+		}
+		$strQuestionText = $arrResult[0]['question_text'];
+		
+		// сгенерировать случайные 3-х значные номера для образцов
+		$num1 = 1;
+		$num2 = 1;
+		$num3 = 1;
+		while ( ($num1 == $num2) && ($num2 == $num3) && ($num1 == $num3) )
+		{
+			$num1 = mt_rand(1,999);
+			$num2 = mt_rand(1,999);
+			$num3 = mt_rand(1,999);
+		}
+		
+		// получить идентификаторы образцов продукции
+		$strQuery = "SELECT 
+						`product_id` 
+					FROM `interview_product` 
+					WHERE `interview_id` = $interviewId";
+		
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrIdProduct = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+		}
+		catch (Exception $e)
+		{
+			die ($e->getMessage() );
+		}
+		// получить порядок следования образцов
+		$strQuery = "SELECT 
+						`pos1`,
+						`pos2`,
+						`pos3`
+					FROM `productorders` 
+					WHERE `interview_id` = $interviewId
+					LIMIT 1";
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrProductOrder = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+		}
+		catch (Exception $e)
+		{
+			die ($e->getMessage() );
+		}
+		
+		// подготовить переменные для ввывода в таблицу
+		// первый образец кодируется символом A, второй - B
+		$prodId1 = ($arrProductOrder[0]['pos1'] == 'A') ? $arrIdProduct[0]['product_id'] : $arrIdProduct[1]['product_id'];
+		$prodId2 = ($arrProductOrder[0]['pos2'] == 'A') ? $arrIdProduct[0]['product_id'] : $arrIdProduct[1]['product_id'];
+		$prodId3 = ($arrProductOrder[0]['pos3'] == 'A') ? $arrIdProduct[0]['product_id'] : $arrIdProduct[1]['product_id'];
+		
+		return <<<TRIANGLE
+	<form action="assets/inc/process.inc.php" method="post">
+		<table width="100%" align="center" border="1">
+			<tr align="center">
+				<td colspan="3">$strQuestionText</td>
+			</tr>
+			<tr align="center">
+				<td>Образец №$num1</td>
+				<td>Образец №$num2</td>
+				<td>Образец №$num3</td>
+			</tr>
+			<tr align="center">
+				<td><input type="radio" name="product_id" value="$prodId1"></td>
+				<td><input type="radio" name="product_id" value="$prodId2"></td>
+				<td><input type="radio" name="product_id" value="$prodId3"></td>
+			</tr>
+			<tr>
+				<td colspan="3">Замечания:</td>
+			</tr>
+			<tr align="center">
+				<td colspan="3"><textarea name="comment"></textarea></td>
+			</tr>
+		</table>
+		
+		
+		<label>$strTasterName</label>
+		<input type="hidden" name="action" value="write_cluster" />
+		<input type="hidden" name="token" value="$_SESSION[token]" />
+		<input type="submit" name="cluster_submit" value="Далее" class="nextCluster"/>
+	</form>
+TRIANGLE;
 	}
 	
 	
@@ -347,11 +485,48 @@ FORM_MARKUP;
 		 */
 		$idProd = (int)$_POST['product_id'];
 		
+		$idInterview = (int)$_SESSION['interview_id']; 
+		
+		if ( $this->_type == M_TRIANG )
+		{
+			$strComment = $_POST['comment'];
+			
+			$strQuery = "INSERT INTO `trianganswers`
+							(
+							`interview_id`, 
+							`taster_id`, 
+							`product_id`, 
+							`ts`, 
+							`comment`
+							) 
+						VALUES 
+							(
+							$idInterview,
+							$idTaster,
+							$idProd,
+							:ts,
+							:comment
+							)";
+			try
+			{
+				$stmt = $this->_objDB->prepare($strQuery);
+				$ts = date('Y-m-d h:i:s');
+				$stmt->bindParam(":ts", $ts, PDO::PARAM_STR);
+				$stmt->bindParam(":comment", $strComment, PDO::PARAM_STR);
+				$stmt->execute();
+				$stmt->closeCursor();
+			}
+			catch (Exception $e)
+			{
+				die ($e->getMessage() );
+			}
+			
+			return TRUE;
+		}
+		
 		/*
 		 * Получить номера вопросов блока
 		 */
-		$idInterview = (int)$_SESSION['interview_id']; 
-		
 		if ( $this->_type == M_PROFIL)
 		{
 			$strQuery = "SELECT
@@ -513,6 +688,7 @@ FORM_MARKUP;
 	 */
 	public function displayInterviewForm()
 	{
+		print_r($_SESSION);
 		//добавить шапку (название и вид дегустационного листа)
 		$strHeader = $this->_getHeader();
 		//добавить блок вопросов (новый или существующий)
@@ -563,8 +739,13 @@ CANCEL;
 CHECK_QUEST;
 					}
 				}
+				// если добавлено меньше 2-х образцов не даем сохранить опросный лист
+				if ( $arrEditedInterview['interview_type'] == M_TRIANG && $arrEditedInterview['num_products'] < 2)
+				{
+					return;
+				}
 				// если опрос по методу треугольника - выводим меню для определения порядка следования образцов
-				if ($arrEditedInterview['interview_type'] == M_TRIANG )
+				if ($arrEditedInterview['interview_type'] == M_TRIANG && $arrEditedInterview['num_products'] == 2 )
 				{
 					$strOrderProduct =<<<ORDER_PRODUCT
 						<br>
@@ -610,6 +791,147 @@ CMD_SAVE;
 	public function processInterviewForm()
 	{
 		$arrEditedInterview = $_SESSION['edited_interview'];
+		// определить тип создаваемого опросного листа
+		if ( $arrEditedInterview['interview_type'] == M_TRIANG )
+		{
+			// сохранить опрос созданный по методу треугольника
+			// 1. сохранить блок вопросов
+			$strQuery = "INSERT INTO `clusters`
+							(
+								`cluster_name`,
+								`cluster_numQuestions`,
+								`cluster_type`
+							)
+							VALUES
+							(
+								'Triang',
+								1,
+								".M_TRIANG."
+							)";
+			try
+			{
+				$stmtC = $this->_objDB->prepare($strQuery);
+				$stmtC->execute();
+				$stmtC->closeCursor();
+				//получаем идентификатор созданного блока вопросов
+				$clusterId = $this->_objDB->lastInsertId();
+			}
+			catch(Exception $e)
+			{
+				return $e->getMessage();
+			}
+			// 2. сохранить вопрос
+			$strQuery = "INSERT INTO `questions`
+							(
+								`question_text`,
+								`cluster_id`,
+								`question_type`
+							)
+							VALUES
+							(
+								:text,
+								$clusterId,
+								".Q_TRIANG."
+							)";
+			try
+			{
+				$strQuestionText = $arrEditedInterview['question_text'];
+				$stmtQ = $this->_objDB->prepare($strQuery);
+				$stmtQ->bindParam(":text", $strQuestionText, PDO::PARAM_STR);
+				$stmtQ->execute();
+				$stmtQ->closeCursor();
+			}
+			catch(Exception $e)
+			{
+				return $e->getMessage();
+			}
+			// 3. сохранить данные о самом опросе ( таблица interviews)
+			$enterpriseId = $arrEditedInterview['enterprise']['enterprise_id'];
+			$strQuery = "INSERT INTO `interviews`
+							(
+								`interview_name`,
+								`cluster_id`,
+								`interview_type`,
+								`enterprise_id`
+							)
+							VALUES
+							(
+								:name,
+								$clusterId,
+								".M_TRIANG.",
+								$enterpriseId
+							)";
+			try
+			{
+				$strInterviewName = $arrEditedInterview['interview_name'];
+				$stmtQ = $this->_objDB->prepare($strQuery);
+				$stmtQ->bindParam(":name", $strInterviewName, PDO::PARAM_STR);
+				$stmtQ->execute();
+				$stmtQ->closeCursor();
+				// получить идентификатор опроса
+				$interviewId = $this->_objDB->lastInsertId();
+			}
+			catch(Exception $e)
+			{
+				return $e->getMessage();
+			}
+			// 4. сохранить порядок следования образцов
+			$strQuery = "INSERT INTO `productorders`
+							(
+								`interview_id`,
+								`pos1`,
+								`pos2`,
+								`pos3`
+							)
+							VALUES
+							(
+								$interviewId,
+								:pos1,
+								:pos2,
+								:pos3
+							)";
+			try
+			{
+				$stmtO = $this->_objDB->prepare($strQuery);
+				$stmtO->bindParam(":pos1", $_POST['pos1'], PDO::PARAM_STR);
+				$stmtO->bindParam(":pos2", $_POST['pos2'], PDO::PARAM_STR);
+				$stmtO->bindParam(":pos3", $_POST['pos3'], PDO::PARAM_STR);
+				$stmtO->execute();
+				$stmtO->closeCursor();
+			}
+			catch(Exception $e)
+			{
+				return $e->getMessage();
+			}
+			// 5. сохранить образцы для данного опроса
+			// первый образец - кодируется литерой A, второй - B
+			$strQuery = "INSERT INTO `interview_product`
+							(
+								`interview_id`,
+								`product_id`
+							)
+							VALUES
+							(
+								$interviewId,
+								:productId
+							)";
+			try
+			{
+				$stmtP = $this->_objDB->prepare($strQuery);
+				$arrProducts = $arrEditedInterview['products'];
+				foreach($arrProducts as $product)
+				{
+					$stmtP->bindParam(":productId", $product->id, PDO::PARAM_INT);
+					$stmtP->execute();
+				}
+				$stmtP->closeCursor();
+			}
+			catch(Exception $e)
+			{
+				return $e->getMessage();
+			}
+			return TRUE;
+		}
 		//проверяем создавался новый блок вопросов или использовался существующий
 		if (!isset($arrEditedInterview['cluster']['cluster_id']))
 		{
@@ -879,7 +1201,7 @@ HEADER_FORM;
 									
 									<option value=\"".M_PROFIL."\">Профильный метод</option>
 									<option value=\"".M_COMPLX."\">Метод комплексной оценки</option>
-									<option value=\"".M_TRIANG."\">Метод комплексной оценки</option>
+									<option value=\"".M_TRIANG."\">Метод треугольника</option>
 									
 								</select>";
 			//выводим форму для ввода данных
@@ -1156,7 +1478,7 @@ CLUSTER_FORM;
 		{
 			// если редактируется опрос по методу треугольника
 			$arrEditedInterview = $_SESSION['edited_interview'];
-			if($arrEditedInterview['interview_type'] == M_TRIANG )
+			if($arrEditedInterview['interview_type'] == M_TRIANG && isset($arrEditedInterview['question_text']) )
 			{
 				$strProductList = "";
 				$arrProducts = $arrEditedInterview['products'];

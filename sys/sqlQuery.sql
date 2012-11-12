@@ -148,6 +148,35 @@ CREATE TABLE IF NOT EXISTS `interviewer`.`answers` (
 ) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;
 
 
+/*таблица для хранения порядка следования образцов в методе треугольника*/
+CREATE TABLE IF NOT EXISTS `interviewer`.`productorders` (
+	`productorder_id`	INT(11) NOT NULL AUTO_INCREMENT,
+	`interview_id`		INT(11),
+	`pos1`				CHAR(1),
+	`pos2`				CHAR(1),
+	`pos3`				CHAR(1),
+	
+	PRIMARY KEY (`productorder_id`),
+	FOREIGN KEY (`pos1`) REFERENCES tasters(`taster_id`),
+	FOREIGN KEY (`interview_id`) REFERENCES interviews(`interview_id`)
+) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+
+/*таблица для хранения ответов данных дегустатором на вопросы метода треугольника*/
+CREATE TABLE IF NOT EXISTS `interviewer`.`trianganswers` (
+	`trianganswer_id`		INT(11) NOT NULL AUTO_INCREMENT,
+	`interview_id`			INT(11),
+	`taster_id`				INT(11),
+	`product_id`			INT(11),
+	`ts`					DATETIME,
+	`comment`				TEXT,
+	
+	PRIMARY KEY (`trianganswer_id`),
+	FOREIGN KEY (`taster_id`) REFERENCES tasters(`taster_id`),
+	FOREIGN KEY (`product_id`) REFERENCES products(`product_id`),
+	FOREIGN KEY (`interview_id`) REFERENCES interviews(`interview_id`)
+) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+
+
 /*таблица для хранения данных пользователей-администраторов*/
 CREATE TABLE IF NOT EXISTS `interviewer`.`users` (
 	`user_id`	INT(11) NOT NULL AUTO_INCREMENT,
