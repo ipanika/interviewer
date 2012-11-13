@@ -751,15 +751,15 @@ CHECK_QUEST;
 					$strOrderProduct =<<<ORDER_PRODUCT
 						<br>
 						<label>Порядок следования образцов:</label>
-						1:<select name="pos1" size="1">
+						1:<select name="pos1" id="pos1">
+							<option value="A" >A</option>
+							<option value="B">B</option>
+						</select><br>
+						2:<select name="pos2" id="pos2">
 							<option value="A">A</option>
 							<option value="B">B</option>
 						</select><br>
-						2:<select name="pos2" size="1">
-							<option value="A">A</option>
-							<option value="B">B</option>
-						</select><br>
-						3:<select name="pos3" size="1">
+						3:<select name="pos3" id="pos3">
 							<option value="A">A</option>
 							<option value="B">B</option>
 						</select><br>
@@ -1804,19 +1804,19 @@ NEW_PRODUCT_BUTTON;
 			
 			$strOrderProduct =<<<ORDER_PRODUCT
 				<br>
-				<form action="process.inc.php" method="post">
+				<form action="assets/inc/process.inc.php" method="post">
 						<label>Порядок следования образцов:</label>
-						1:<select name="pos1">
+						1:<select name="pos1" id="pos1">
 							<option value="A">$strProductA</option>
-							<option value="B" $selectedB1>$strProductB</option>
+							<option $selectedB1 value="B">$strProductB</option>
 						</select><br>
-						2:<select name="pos2">
+						2:<select name="pos2" id="pos2">
 							<option value="A">$strProductA</option>
-							<option value="B" $selectedB2>$strProductB</option>
+							<option $selectedB2 value="B">$strProductB</option>
 						</select><br>
-						3:<select name="pos3">
+						3:<select name="pos3" id="pos3">
 							<option value="A">$strProductA</option>
-							<option value="B" $selectedB3>$strProductB</option>
+							<option $selectedB3 value="B">$strProductB</option>
 						</select><br>
 						<input type="hidden" name="token" value="$_SESSION[token]" />
 						<input type="hidden" name="action" value="edit_productorder" />

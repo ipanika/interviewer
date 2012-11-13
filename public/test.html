@@ -3,30 +3,14 @@
   <title>Загрузка файлов на сервер</title>
 </head>
 <body>
-	<table width="100%" border="0" cellspacing="0" cellpadding="4">
-		<tr align="center" bgcolor="#999999">
-			<td colspan="3" style="font-size: 160%; font-family: sans-serif">Lorem 
-				ipsum dolor sit amet...</td>
-		</tr>
-		<tr>
-			<td><img src="images/title.png" alt="" width="150" height="70" 
-					border="0" style="background: #CC9"></td>
-			<td align="right"><img src="images/logo.png" alt="" width="70" 
-					height="70" style="background: #CF9"></td>
-			<td>
-			  <a href="lorem.html">Lorem</a><Br>
-			  <a href="lorem.html">Ipsum</a><Br>
-			  <a href="lorem.html">Dolar</a>
-			</td>
-	   </tr>
-	   <tr>
-		<td colspan="3">
-			 <table  width="100%" border="0" cellpadding="0" 
-			   cellspacing="0" bgcolor="#333333">
-			   <tr><td>&nbsp;</td></tr>
-			 </table>
-		</td>
-	   </tr>
-  </table>
+	<form action="select1.php" method="post">
+   <p><select name="hero">
+    <option value="Чебурашка">Чебурашка</option>
+    <option selected value="Крокодил Гена">Крокодил Гена</option>
+    <option value="Шапокляк">Шапокляк</option>
+    <option value="Крыса Лариса">Крыса Лариса</option>
+   </select></p>
+   <p><input type="submit" value="Отправить"></p>
+  </form>
 </body>
 </html>
