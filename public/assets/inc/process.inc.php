@@ -116,6 +116,11 @@ $arrActions = array(
 			'object' => 'Interview',
 			'method' => 'processTriangQuestForm',
 			'header' => 'Location: ../../editInterview.php'
+		),
+		'edit_productorder' => array(
+			'object' => 'Interview',
+			'method' => 'processOrderForm',
+			'header' => 'Location: ../../admin.php'
 		)
 		
 	);

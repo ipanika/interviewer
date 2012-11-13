@@ -192,6 +192,7 @@ FORM_MARKUP;
 						`pos3`
 					FROM `productorders` 
 					WHERE `interview_id` = $interviewId
+					ORDER BY productorder_id DESC
 					LIMIT 1";
 		try
 		{
@@ -1744,7 +1745,123 @@ NEW_PRODUCT_BUTTON;
 	{
 		$arrInterview = $this->_getCurInterview();
 		
-		return $arrInterview['interview_name'];
+		/*
+		 * Для метода треугольника выводим порядок следования образцов
+		 */
+		if ( $arrInterview['interview_type'] == M_TRIANG )
+		{
+			$interviewId = $arrInterview['interview_id'];
+			// получить идентификаторы образцов продукции
+			$strQuery = "SELECT 
+							`product_id` 
+						FROM `interview_product` 
+						WHERE `interview_id` = $interviewId";
+			try
+			{
+				$stmt = $this->_objDB->prepare($strQuery);
+				$stmt->execute();
+				$arrIdProduct = $stmt->fetchAll(PDO::FETCH_ASSOC);
+				$stmt->closeCursor();
+			}
+			catch (Exception $e)
+			{
+				die ($e->getMessage() );
+			}
+			// получить порядок следования образцов
+			$strQuery = "SELECT 
+							`pos1`,
+							`pos2`,
+							`pos3`
+						FROM `productorders` 
+						WHERE `interview_id` = $interviewId
+						ORDER BY productorder_id DESC
+						LIMIT 1";
+			try
+			{
+				$stmt = $this->_objDB->prepare($strQuery);
+				$stmt->execute();
+				$arrProductOrder = $stmt->fetchAll(PDO::FETCH_ASSOC);
+				$stmt->closeCursor();
+			}
+			catch (Exception $e)
+			{
+				die ($e->getMessage() );
+			}
+			
+			$objProductManager = new ProductManager($this->_objDB);
+			$arrProducts[0] = $objProductManager->getProductById($arrIdProduct[0]['product_id']);
+			$arrProducts[1] = $objProductManager->getProductById($arrIdProduct[1]['product_id']);
+			
+			// подготовить переменные для ввывода в таблицу
+			// первый образец кодируется символом A, второй - B
+			$selectedB1 = ($arrProductOrder[0]['pos1'] == 'B') ? "selected" : "";
+			$selectedB2 = ($arrProductOrder[0]['pos2'] == 'B') ? "selected" : "";
+			$selectedB3 = ($arrProductOrder[0]['pos3'] == 'B') ? "selected" : "";
+			
+			$strProductA = "A: ".$arrProducts[0]->name;
+			$strProductB = "B: ".$arrProducts[1]->name;
+			$arrOptions = array();
+			
+			$strOrderProduct =<<<ORDER_PRODUCT
+				<br>
+				<form action="process.inc.php" method="post">
+						<label>Порядок следования образцов:</label>
+						1:<select name="pos1">
+							<option value="A">$strProductA</option>
+							<option value="B" $selectedB1>$strProductB</option>
+						</select><br>
+						2:<select name="pos2">
+							<option value="A">$strProductA</option>
+							<option value="B" $selectedB2>$strProductB</option>
+						</select><br>
+						3:<select name="pos3">
+							<option value="A">$strProductA</option>
+							<option value="B" $selectedB3>$strProductB</option>
+						</select><br>
+						<input type="hidden" name="token" value="$_SESSION[token]" />
+						<input type="hidden" name="action" value="edit_productorder" />
+						<input type="submit" name="question_submit" class="check_order" value="Сделать текущим выбранный порядок образцов" />
+				</form>
+ORDER_PRODUCT;
+			
+		}
+		
+		return "<label>".$arrInterview['interview_name']."</label>" . $strOrderProduct;
+	}
+	
+	public function processOrderForm()
+	{
+		$interviewId = $this->_getCurInterview()['interview_id'];
+		// сохранить порядок следования образцов
+		$strQuery = "INSERT INTO `productorders`
+						(
+							`interview_id`,
+							`pos1`,
+							`pos2`,
+							`pos3`
+						)
+						VALUES
+						(
+							$interviewId,
+							:pos1,
+							:pos2,
+							:pos3
+						)";
+		try
+		{
+			$stmtO = $this->_objDB->prepare($strQuery);
+			$stmtO->bindParam(":pos1", $_POST['pos1'], PDO::PARAM_STR);
+			$stmtO->bindParam(":pos2", $_POST['pos2'], PDO::PARAM_STR);
+			$stmtO->bindParam(":pos3", $_POST['pos3'], PDO::PARAM_STR);
+			$stmtO->execute();
+			$stmtO->closeCursor();
+		}
+		catch(Exception $e)
+		{
+			return $e->getMessage();
+		}
+		
+		return TRUE;
 	}
 }
  
