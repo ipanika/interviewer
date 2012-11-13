@@ -3,14 +3,26 @@
   <title>Загрузка файлов на сервер</title>
 </head>
 <body>
-	<form action="select1.php" method="post">
-   <p><select name="hero">
-    <option value="Чебурашка">Чебурашка</option>
-    <option selected value="Крокодил Гена">Крокодил Гена</option>
-    <option value="Шапокляк">Шапокляк</option>
-    <option value="Крыса Лариса">Крыса Лариса</option>
-   </select></p>
-   <p><input type="submit" value="Отправить"></p>
-  </form>
+	<table width="100%" border="1" cellpadding="4" cellspacing="0">
+			<tr align="center">
+				<td>Количество участников</td>
+				<td>Наименование образца</td>
+				<td>Количество оценок образца</td>
+				<td>Число требуемых правильных ответов при вероятности 0.001</td>
+				<td>Комментарии участников</td>
+			</tr>
+			<tr  align="center">
+				<td rowspan="2">123</td>
+				<td>Образец A: $strProductNameA</td>
+				<td>$productAValue</td>
+				<td>$numCorrectAnswersA</td>
+				<td rowspan="2">$comments</td>
+			</tr>
+			<tr  align="center">
+				<td>Образец B: $strProductNameB</td>
+				<td>$productBValue</td>
+				<td>$numCorrectAnswersB</td>
+			</tr>
+		</table>
 </body>
 </html>

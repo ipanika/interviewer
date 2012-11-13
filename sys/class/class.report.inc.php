@@ -104,8 +104,81 @@ class Report extends DB_Connect
 			case M_CONSUM:
 				break;
 			case M_TRIANG:
+				return $strHeader . $this->buildTriangReport($interviewId);
 				break;
 		}
+	}
+	
+	/**
+	 * Формирует таблицу отчет по опросу сформированному по комплексному методу
+	 *
+	 * @param int: идентификатор опроса в базе данных
+	 * @return string: HTML-разметка таблицы отчета
+	 */
+	private function buildTriangReport($interviewId)
+	{
+		$strQuery = "SELECT
+						COUNT(`trianganswers`.`product_id`) AS `count_value`,
+						`products`.`product_name`,
+						GROUP_CONCAT(`trianganswers`.`comment` SEPARATOR '<br>') AS `comment`
+					FROM `interview_product`
+					LEFT JOIN `products`
+						ON `products`.`product_id` = `interview_product`.`product_id`
+					LEFT JOIN `trianganswers`
+						ON `trianganswers`.`product_id` = `interview_product`.`product_id` AND 
+								`trianganswers`.`interview_id` = `interview_product`.`interview_id`
+					WHERE `interview_product`.`interview_id` = 10 
+					GROUP BY `trianganswers`.`product_id`";
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+			
+			if ( !isset($arrResults[0]) )
+			{
+				return "По данному опросу нет данных";
+			}
+		}
+		catch ( Exception $e )
+		{
+			die ( $e->getMessage() );
+		}
+		
+		$strProductNameA = $arrResults[0]['product_name'];
+		$strProductNameB = $arrResults[1]['product_name'];
+		$productAValue = $arrResults[0]['count_value'];
+		$productBValue = $arrResults[1]['count_value'];
+		$numTasters = $arrResults[0]['count_value'] + $arrResults[1]['count_value'];
+		$comments = $arrResults[0]['comment'] . $arrResults[1]['comment'];
+		
+		$numCorrectAnswersA = "";
+		$numCorrectAnswersB = "";
+		
+		return <<<TRIANG
+		<table width="100%" border="1" cellpadding="4" cellspacing="0">
+			<tr align="center">
+				<td>Количество участников</td>
+				<td>Наименование образца</td>
+				<td>Количество оценок образца</td>
+				<td>Число требуемых правильных ответов при вероятности 0.001</td>
+				<td>Комментарии участников</td>
+			</tr>
+			<tr  align="center">
+				<td rowspan="2">$numTasters</td>
+				<td>Образец A: $strProductNameA</td>
+				<td>$productAValue</td>
+				<td>$numCorrectAnswersA</td>
+				<td rowspan="2">$comments</td>
+			</tr>
+			<tr  align="center">
+				<td>Образец B: $strProductNameB</td>
+				<td>$productBValue</td>
+				<td>$numCorrectAnswersB</td>
+			</tr>
+		</table>
+TRIANG;
 	}
 	
 	/**
