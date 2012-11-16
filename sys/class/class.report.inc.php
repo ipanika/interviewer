@@ -110,7 +110,7 @@ class Report extends DB_Connect
 	}
 	
 	/**
-	 * Формирует таблицу отчет по опросу сформированному по комплексному методу
+	 * Формирует таблицу отчет по опросу сформированному по методу треугольника
 	 *
 	 * @param int: идентификатор опроса в базе данных
 	 * @return string: HTML-разметка таблицы отчета
@@ -127,7 +127,7 @@ class Report extends DB_Connect
 					LEFT JOIN `trianganswers`
 						ON `trianganswers`.`product_id` = `interview_product`.`product_id` AND 
 								`trianganswers`.`interview_id` = `interview_product`.`interview_id`
-					WHERE `interview_product`.`interview_id` = 10 
+					WHERE `interview_product`.`interview_id` = $interviewId 
 					GROUP BY `trianganswers`.`product_id`";
 		try
 		{
@@ -155,6 +155,16 @@ class Report extends DB_Connect
 		
 		$numCorrectAnswersA = "";
 		$numCorrectAnswersB = "";
+		
+		/*
+		 * Вычислить минимальное количество правильных ответов, для принятия решения \
+		 * об идентичности образцов
+		 */
+		/* 
+		 * Формула для вычисления взята из стандарта BS ISO 4120-2004
+		 */
+		$z = 3.09;
+		$numCorrectAnswersB = (int)($numTasters/3 + $z * sqrt(2*$numTasters/9) + 0.5 );
 		
 		return <<<TRIANG
 		<table width="100%" border="1" cellpadding="4" cellspacing="0">
