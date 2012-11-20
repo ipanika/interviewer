@@ -18,6 +18,10 @@
     -webkit-box-shadow: 0 0 14px #123;
     box-shadow: 0 0 14px #123;
 }
+
+table {
+	width: 812px;
+}
 /* 
 h2,p {
     margin: 0 auto 14px;

@@ -138,13 +138,15 @@ CREATE TABLE IF NOT EXISTS `interviewer`.`answers` (
 	`taster_id`				INT(11),
 	`interview_product_id`	INT(11),
 	`responseOption_id`		INT(11),
+	`question_id`			INT(11),
 	`ts`					DATETIME,
 	`comment`				TEXT,
 	
 	PRIMARY KEY (`answer_id`),
 	FOREIGN KEY (`taster_id`) REFERENCES tasters(`taster_id`),
 	FOREIGN KEY (`interview_product_id`) REFERENCES interview_product(`interview_product_id`),
-	FOREIGN KEY (`responseOption_id`) REFERENCES responseOptions(`responseOption_id`)
+	FOREIGN KEY (`responseOption_id`) REFERENCES responseOptions(`responseOption_id`),
+	FOREIGN KEY (`question_id`) REFERENCES questions(`question_id`)
 ) ENGINE=MyISAM CHARACTER SET utf8 COLLATE utf8_unicode_ci;
 
 
