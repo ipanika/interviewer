@@ -225,7 +225,20 @@ TRIANG;
 						`questions`.`question_id`,
 						`questions`.`question_text`,
 						`questions`.`question_rate`,
-						GROUP_CONCAT(`answers`.`comment` SEPARATOR '<br>') AS `comment`
+						CASE 
+							WHEN `answers`.`comment` IS NOT NULL THEN CONCAT(`answers`.`comment`, '-',
+									`tasters`.`taster_surname`, ' ',
+									`tasters`.`taster_name`)
+						END AS cm,
+						
+						GROUP_CONCAT(
+							(CASE 
+								WHEN NOT `answers`.`comment` = '' THEN CONCAT(`answers`.`comment`, '-',
+									`tasters`.`taster_surname`, ' ',
+									`tasters`.`taster_name`)
+								END
+							)
+							SEPARATOR '<br>') AS `comment`
 					FROM `answers`
 					LEFT JOIN `interview_product` 
 						ON `interview_product`.`interview_product_id` = `answers`.`interview_product_id`
@@ -235,6 +248,8 @@ TRIANG;
 						ON `responseoptions`.`responseOption_id` = `answers`.`responseOption_id`
 					LEFT JOIN `questions`
 						ON `questions`.`question_id` = `responseoptions`.`question_id`
+					LEFT JOIN `tasters`
+						ON `tasters`.`taster_id` = `answers`.`taster_id`
 					WHERE `interview_product`.`interview_id` = $interviewId
 					GROUP BY 
 						`answers`.`interview_product_id`, 
