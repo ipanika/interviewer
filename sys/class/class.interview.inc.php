@@ -853,20 +853,24 @@ CMD_SAVE;
 								`interview_name`,
 								`cluster_id`,
 								`interview_type`,
-								`enterprise_id`
+								`enterprise_id`,
+								`interview_date`
 							)
 							VALUES
 							(
 								:name,
 								$clusterId,
 								".M_TRIANG.",
-								$enterpriseId
+								$enterpriseId,
+								:date
 							)";
 			try
 			{
 				$strInterviewName = $arrEditedInterview['interview_name'];
+				$strInterviewDate = $arrEditedInterview['interview_date'];
 				$stmtQ = $this->_objDB->prepare($strQuery);
 				$stmtQ->bindParam(":name", $strInterviewName, PDO::PARAM_STR);
+				$stmtQ->bindParam(":date", $strInterviewDate, PDO::PARAM_STR);
 				$stmtQ->execute();
 				$stmtQ->closeCursor();
 				// получить идентификатор опроса
@@ -1038,6 +1042,7 @@ CMD_SAVE;
 		//вид опросного листа и идентификатор предприятия для которого проводится опрос
 		$type = $arrEditedInterview['interview_type'];
 		$strInterviewName = $arrEditedInterview['interview_name'];
+		$strInterviewDate = $arrEditedInterview['interview_date'];
 		$enterpriseId = $arrEditedInterview['enterprise']['enterprise_id'];
 		
 		$strQuery = "INSERT INTO `interviews`
@@ -1045,14 +1050,16 @@ CMD_SAVE;
 								`interview_name`,
 								`interview_type`,
 								`cluster_id`,
-								`enterprise_id`
+								`enterprise_id`,
+								`interview_date`
 							)
 							VALUES
 							(
 								:name,
 								:type,
 								:cluster_id,
-								$enterpriseId
+								$enterpriseId,
+								:date
 								
 							)";
 		
@@ -1061,6 +1068,7 @@ CMD_SAVE;
 			$stmt = $this->_objDB->prepare($strQuery);
 			$stmt->bindParam(":name", $strInterviewName, PDO::PARAM_STR);
 			$stmt->bindParam(":type", $type, PDO::PARAM_INT);
+			$stmt->bindParam(":date", $strInterviewDate, PDO::PARAM_STR);
 			$stmt->bindParam(":cluster_id", $clusterId, PDO::PARAM_INT);
 			$stmt->execute();
 			$stmt->closeCursor();
@@ -1162,6 +1170,7 @@ CMD_SAVE;
 			$arrEditedInterview = $_SESSION['edited_interview'];
 			$strInterviewName = $arrEditedInterview['interview_name'];
 			$strEnterpriseName = $arrEditedInterview['enterprise']['enterprise_name'];
+			$strInterviewDate = $arrEditedInterview['interview_date'];
 			switch ($arrEditedInterview['interview_type'] )
 			{
 				case M_TRIANG:
@@ -1182,6 +1191,9 @@ CMD_SAVE;
 <label>Название дегустационного листа:</label>
 <input type="text" name="interview_name"
 			id="interview_name" value="$strInterviewName" readonly/>
+<label>Дата</label>
+<input type="text" name="interview_date"
+			id="interview_date" value="$strInterviewDate" readonly/>
 <label>Выпускающее предприятие:</label>
 <input type="text" name="enterprise_name"
 			id="enterprise_name" value="$strEnterpriseName" readonly/>
@@ -1205,12 +1217,16 @@ HEADER_FORM;
 									<option value=\"".M_TRIANG."\">Метод треугольника</option>
 									
 								</select>";
+			$strInterviewDate = date('Y-m-d');
 			//выводим форму для ввода данных
 			return <<<HEADER_FORM
 	<form action="assets/inc/process.inc.php" method="post" >
 		<label for="interview_name">Название дегустационного листа</label>
 		<input type="text" name="interview_name"
 			id="interview_name" value="" />
+		<label for="interview_date">Дата</label>
+		<input type="text" name="interview_date"
+			id="interview_date" value="$strInterviewDate" />
 		<label>Вариант опроса:</label>
 		$strInterviewType
 		<label>Выпускающее предприятие</label>
@@ -1578,6 +1594,7 @@ NEW_PRODUCT_BUTTON;
 		$strInterviewName =  htmlentities($_POST['interview_name'], ENT_QUOTES);
 		$intInterviewType = (int) $_POST['interview_type'];
 		$enterpriseId = (int)$_POST['enterprise_id'];
+		$strInterviewDate = htmlentities($_POST['interview_date'], ENT_QUOTES);
 		
 		$objEnterpriseManager = new EnterpriseManager($this->_objDB);
 		$strEnterpriseName = $objEnterpriseManager->getEnterpriseById($enterpriseId)->name;
@@ -1589,7 +1606,8 @@ NEW_PRODUCT_BUTTON;
 		$arrEditedInterview = array(
 					'interview_name' => $strInterviewName,
 					'interview_type' => $intInterviewType,
-					'enterprise' => $arrEnterprise
+					'enterprise' => $arrEnterprise,
+					'interview_date' => $strInterviewDate
 			);
 		
 		if ( $intInterviewType == M_COMPLX)

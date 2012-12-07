@@ -88,23 +88,40 @@ class Report extends DB_Connect
 		
 		$interviewType = $arrInterview['interview_type'];
 		$strInterviewName = $arrInterview['interview_name'];
+		$strInterviewDate = $arrInterview['interview_date'];
+		$EnterpriseId = $arrInterview['enterprise_id'];
+		$objEnterpriseManager = new EnterpriseManager($this->_objDB);
+		$strEnterpriseName = $objEnterpriseManager->getEnterpriseById($EnterpriseId)->name;
 		/*
 		 * Задать шапку отчета
 		 */
-		$strHeader = "<label>Отчет по опросному листу: $strInterviewName</label><br>";
+		$strHeader ="<label>Отчет по дегустационному листу: $strInterviewName от $strInterviewDate</label>
+					<label>Выпускающее предприятие: $strEnterpriseName</label><br>";
+		
+		/*
+		 * Получить список участников дегустации
+		 */
+		$arrTasterList = $this->_getTasterList($interviewId);
+		// построить HTML список участников
+		$strTasterList = "<label>Участники дегустации:</label><ol>";
+		foreach ($arrTasterList as $arrTaster)
+		{
+			$strTasterList .= "<li>$arrTaster[taster_surname] $arrTaster[taster_name]</li>";
+		}
+		$strTasterList .= "</ol>";
 		
 		switch($interviewType)
 		{
 			case M_PROFIL:
-				return $strHeader . $this->buildProfilReport($interviewId);
+				return $strHeader . $this->buildProfilReport($interviewId) . $strTasterList;
 				break;
 			case M_COMPLX:
-				return $strHeader . $this->buildComplxReport($interviewId);
+				return $strHeader . $this->buildComplxReport($interviewId). $strTasterList;
 				break;
 			case M_CONSUM:
 				break;
 			case M_TRIANG:
-				return $strHeader . $this->buildTriangReport($interviewId);
+				return $strHeader . $this->buildTriangReport($interviewId). $strTasterList;
 				break;
 		}
 	}
@@ -264,7 +281,9 @@ TRIANG;
 	{
 		$strQuery = "SELECT
 						`interviews`.`interview_type`,
-						`interviews`.`interview_name`
+						`interviews`.`interview_name`,
+						`interviews`.`interview_date`,
+						`interviews`.`enterprise_id`
 					FROM `interviews`
 					WHERE `interviews`.`interview_id` = $interviewId
 					LIMIT 1";
@@ -821,6 +840,64 @@ PRODUCT_RES;
 				<td>$arrRow[comment]</td>
 			</tr>
 PRODUCT_RES;
+	}
+	
+	/**
+	 * Возвращает список учасников дегустации
+	 *
+	 * @param int: идентификатор опроса
+	 * @return array: HTML-строка
+	 */
+	private function _getTasterList($interviewId)
+	{
+		$arrInterview = $this->getInterview($interviewId);
+		
+		/*
+		 * Подсчитать число участников дегустации
+		 */
+		// в записимости от типа опроса искать в разных таблицах
+		if ($arrInterview['interview_type'] == M_TRIANG )
+		{
+			$strQuery = "SELECT
+							`tasters`.`taster_name`,
+							`tasters`.`taster_surname`
+						FROM `trianganswers` 
+						LEFT JOIN `tasters`
+							ON `tasters`.`taster_id` = `trianganswers`.`taster_id`
+						WHERE `interview_id` = $interviewId
+						GROUP BY `trianganswers`.`taster_id`"; 
+			
+		}
+		else
+		{
+			$strQuery = "SELECT
+							`tasters`.`taster_name`,
+							`tasters`.`taster_surname`
+						FROM `answers`
+						LEFT JOIN `tasters` 
+							ON `tasters`.`taster_id` = `answers`.`taster_id`
+						LEFT JOIN `interview_product`
+							ON `answers`.`interview_product_id` = `interview_product`.`interview_product_id`
+						WHERE `interview_product`.`interview_id` = $interviewId
+						GROUP BY `answers`.`taster_id`";
+		}
+		
+		
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+			
+			return $arrResults;
+			
+		}
+		catch ( Exception $e )
+		{
+			die ( $e->getMessage() );
+		}
+		
 	}
 }
  
