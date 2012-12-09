@@ -208,7 +208,7 @@ NEW_QUESTION_BUTTON;
 	 * Метод возвращает разметку для отображения вопроса с кнопкой для перехода
 	 * к редактированию
 	 *
-	 * @param int: идентификатор вопрос в сеансе
+	 * @param int: идентификатор вопроса в сеансе
 	 * @return string: HTML-разметка
 	 */
 	public function displayQuestion($id)
@@ -293,7 +293,8 @@ QUESTION_VIEW;
 			$id = NULL;
 		}
 		
-		if ( $_SESSION['edited_interview']['interview_type'] == M_PROFIL )
+		if ( $_SESSION['edited_interview']['interview_type'] == M_PROFIL || 
+							$_SESSION['edited_interview']['interview_type'] == M_CONSUM )
 		{
 			/*
 			 * Создать разметку для вариантов ответа
@@ -329,6 +330,23 @@ OPTION_FORM;
 				}
 			}
 		}
+		
+		
+		//если выбран потребительский метод
+		if ( $_SESSION['edited_interview']['interview_type'] == M_CONSUM)
+		{
+			if ( $id !== NULL )
+			{
+				if($objQuestion->type == Q_OPEN)
+				{
+					$checked = 'checked';
+				}
+				
+			}
+						
+			$strCheckOpen = "<input type=\"checkbox\" name=\"question_type\" $checked >Открытый вопрос<br>";
+		}
+		
 		if ( $_SESSION['edited_interview']['interview_type'] == M_COMPLX )
 		{
 			$strOptionsList = "<label>Шкала ответа от 1 до 7 баллов.</lable>";
@@ -341,6 +359,7 @@ OPTION_FORM;
 			<label for="question_text">Текст вопроса:</label>
 			<textarea name="question_text" 
 				id="question_text">$objQuestion->text</textarea>
+			$strCheckOpen
 			<label for="question_rate">Вес показателя:</label>
 			<input type="text" name="question_rate" 
 				id="question_rate" value="$objQuestion->rate"/>
@@ -364,6 +383,7 @@ QUESTION_FORM;
 	 */
 	public function processQuestionForm()
 	{
+		$question_type = Q_CLOSE;
 		/*
 		 * Выход, если значение "action" задано неправильно
 		 */
@@ -397,10 +417,27 @@ QUESTION_FORM;
 			}
 		}
 		
+		if ( $_SESSION['edited_interview']['interview_type'] == M_CONSUM)
+		{
+			if ($_POST['question_type'] == 'on')
+			{
+				$question_type = Q_OPEN;
+			}
+			ELSE
+			{
+				for ($i = 0; $i < NUM_OF_OPTIONS; $i++)
+				{
+					$options[$i] = array('responseOption_text' => htmlentities($_POST['option'.$i], ENT_QUOTES));
+				}
+			}
+			
+		}
+		
 		$arrQuestion = array(
 			'text' => $strQuestionText,
 			'rate' => $strQuestionRate,
-			'options' => $options
+			'options' => $options,
+			'type' => $question_type
 		);
 		
 		/*
@@ -431,11 +468,7 @@ QUESTION_FORM;
 		}
 		
 		$_SESSION['edited_interview']['cluster']['questions'][$id] = $objQuestion;
-		
-		/*
-		 * Возвратить ID события
-		 */
-		//return $id;
+	
 				
 		return TRUE;
 	}

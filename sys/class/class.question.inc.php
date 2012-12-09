@@ -27,6 +27,12 @@ class Question
 	public $rate;
 	
 	/**
+	* Тип вопроса - открытый или закрытый
+	* @var int
+	*/
+	public $type;
+	
+	/**
 	 * Количество вариантов ответа на вопрос
 	 *
 	 * @var int
@@ -70,6 +76,12 @@ class Question
 		
 		$objQuestion->text = $arrQuestion['text'];
 		$objQuestion->rate = $arrQuestion['rate'];
+		$objQuestion->type = $arrQuestion['type'];
+		
+		if ($objQuestion->type == Q_OPEN)
+		{
+			return $objQuestion;
+		}
 		
 		$objQuestion->arrResponseOptions = array();
 		for($i = 0; $i < NUM_OF_OPTIONS; $i++ )
@@ -109,7 +121,8 @@ class Question
 		 */
 		$strQuery = "SELECT 
 						`question_text`, 
-						`question_rate`  
+						`question_rate`,
+						question_type
 					FROM `questions` 
 					WHERE `question_id` = :id
 					LIMIT 1";
@@ -133,10 +146,16 @@ class Question
 			$objQuestion->id = $id;
 			$objQuestion->text = $arrResults[0]['question_text'];
 			$objQuestion->rate = $arrResults[0]['question_rate'];
+			$objQuestion->type = $arrResults[0]['question_type'];
 		
 			/*
 			 * Получить варианты ответов из базы данных
 			 */
+			If ($objQuestion->type == Q_OPEN) 
+			{
+				return $objQuestion;
+			}
+			
 			$strQuery = "SELECT 
 							`responseoptions`.`responseOption_id`,
 							`responseoptions`.`responseOption_text`,

@@ -103,6 +103,7 @@ GOOD_BYE;
 					$strCluster = $this->_getClusterComplex();
 					break;
 				case M_CONSUM:
+					$strCluster = $this->_getClusterConsum();
 					break;
 			} 
 			
@@ -118,6 +119,83 @@ GOOD_BYE;
 	</form>
 FORM_MARKUP;
 		}	
+	}
+	
+	/**
+	 * Возвращает разметку для блока вопросов составленных по потребительскому методу
+	 *
+	 * @return string: HTML-разметка
+	 */
+	private function _getClusterConsum()
+	{
+		/*
+		 * Получаем идентификатор текущего опроса
+		 */
+		$idInterview = (int)$_SESSION['interview_id'];
+		
+		//получить идентификаторы вопросов для текущего опроса
+		$strQuery = "SELECT 
+						`question_ID` 
+					FROM `questions`, `interviews` 
+					WHERE `questions`.`cluster_id`= `interviews`.`cluster_id` 
+							AND `interviews`.`interview_id` = $idInterview";
+		
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrId = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+		}
+		catch (Exception $e)
+		{
+			die ($e->getMessage() );
+		}
+		
+		/*
+		 * Формируем шапку таблицы
+		 */
+		$strTable = "<table border=\"1\">
+			<tr>
+				<td >№</td>
+				<td>Показатели</td>
+				<td>Шкала оценки</td>
+				<td>Комментарии</td>
+			</tr>\n";
+		
+		$arrQuestions = array();
+		$count = 1;
+		//получить объекты вопросов текущего опроса
+		foreach($arrId as $ID)
+		{
+			$question = Question::getQuestionById($ID['question_ID'], $this->_objDB);
+			//сформировать разметку для текущего вопроса
+			$strTable .= "<tr>
+							<td>$count</td>
+							<td>$question->text</td>
+							";
+			if ($question->type == Q_CLOSE)
+			{
+				$strTable .= "<td>";
+				for ($i = 0; $i<NUM_OF_OPTIONS; $i++)
+				{
+				$responseOption = $question->arrResponseOptions[$i];
+					$strTable.= "<input type=\"radio\" name=\"quest$question->id\"
+					value=\"$responseOption->id\">$responseOption->text<br>";
+				}
+				$strTable .= "</td>";
+				$strTable .= "<td><textarea name=\"comment$question->id\"></textarea></td></tr>";
+			}
+			else
+			{
+				$strTable .= "<td colspan = \"2\"><textarea name=\"comment$question->id\"></textarea></td></tr>";
+			}
+			$count += 1;
+		}
+		
+		$strTable .= "</table>";
+		
+		return $strTable;
 	}
 	
 	/**
@@ -548,6 +626,17 @@ TRIANGLE;
 						ORDER BY 
 							`activequestions`.`question_id`";
 		}
+		if ( $this->_type == M_CONSUM)
+		{
+			$strQuery = "SELECT
+							`questions`.`question_id`
+						FROM `questions`
+						LEFT JOIN `interviews` 
+							ON `interviews`.`cluster_id` = `questions`.`cluster_id`
+						WHERE `interviews`.`interview_id`= $idInterview
+						ORDER BY 
+							`questions`.`question_id`";
+		}
 		
 		try
 		{
@@ -569,11 +658,11 @@ TRIANGLE;
 							 `interview_product_id`,
 							 `responseOption_id`,
 							 `ts`,
-							 `comment`)
+							 `comment`, `question_id`)
 						VALUES
-							(:tasterId, :prodId, :optionId, :ts, :comment)";
+							(:tasterId, :prodId, :optionId, :ts, :comment, :question_id)";
 		$stmt = $this->_objDB->prepare($strQuery);
-		print_r($arrQuestNums);
+		
 		foreach ($arrQuestNums as $questNum)
 		{
 			//получить ответ на текущий вопрос
@@ -588,6 +677,7 @@ TRIANGLE;
 				$stmt->bindParam(":optionId", $ansNum, PDO::PARAM_INT);
 				$stmt->bindParam(":ts", date('Y-m-d h:i:s'), PDO::PARAM_STR);
 				$stmt->bindParam(":comment", $comment, PDO::PARAM_STR);
+				$stmt->bindParam(":question_id", $num, PDO::PARAM_INT);
 				$stmt->execute();
 				$stmt->closeCursor();
 			}
@@ -982,7 +1072,7 @@ CMD_SAVE;
 								$clusterId,
 								:qtext,
 								:qrate,
-								".Q_CLOSE."
+								:qtype
 							)";
 				try
 				{
@@ -991,6 +1081,7 @@ CMD_SAVE;
 					{
 						$stmt3->bindParam(":qtext", $question->text, PDO::PARAM_STR);
 						$stmt3->bindParam(":qrate", $question->rate, PDO::PARAM_INT);
+						$stmt3->bindParam(":qtype", $question->type, PDO::PARAM_INT);
 						$stmt3->execute();
 						//получаем идентификатор сохраненного вопроса
 						$questionId = $this->_objDB->lastInsertId();
@@ -1208,14 +1299,11 @@ HEADER_FORM;
 			$objEnterpriseManager = new EnterpriseManager($this->_objDB);
 			$strEnterpriseList = $objEnterpriseManager->getDropDownList();
 			// список для выбора типа опросного листа
-			// <option value=\"".M_TRIANG."\">Метод треугольника</option>
-			// <option value=\"".M_CONSUM."\">Потребительское тестирование</option>
 			$strInterviewType = "<select name=\"interview_type\">
-									
 									<option value=\"".M_PROFIL."\">Профильный метод</option>
 									<option value=\"".M_COMPLX."\">Метод комплексной оценки</option>
 									<option value=\"".M_TRIANG."\">Метод треугольника</option>
-									
+									<option value=\"".M_CONSUM."\">Потребительское тестирование</option>
 								</select>";
 			$strInterviewDate = date('Y-m-d');
 			//выводим форму для ввода данных
@@ -1660,6 +1748,17 @@ NEW_PRODUCT_BUTTON;
 			 */
 			$arrEditedInterview['cluster'] = $cluster;
 		}
+		
+		if ( $intInterviewType == M_CONSUM)
+		{
+			//создаем новый блок вопросов
+			$cluster = array(
+				'num_questions' => 0
+				);
+			//Сохраняем данные в сеансе
+			$arrEditedInterview['cluster'] = $cluster;	
+		}
+		
 		$_SESSION['edited_interview'] = $arrEditedInterview;
 		
 		
