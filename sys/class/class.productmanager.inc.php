@@ -118,6 +118,108 @@ PRODUCT_LIST_FORM;
 FORM_MARKUP;
 	}
 	
+	/**s
+	 * Метод возвращает разметку для отображения списка зарегистрированнных 
+	 * в системе продуктов
+	 *
+	 * @return string: HTML-строка
+	 */
+	public function buildProductListForDelete()
+	{
+		/*
+		 * получить все продукты, зарегистрированные в системе 
+		 * в виде массива объектов
+		 */
+		$arrProducts = $this->_getProductList();
+		
+		$strSubmit = "Удалить выбранные продукты";
+		
+		$strProductList = "<form action=\"assets/inc/process.inc.php\" method=\"post\"<legend>Список зарегистрированных продуктов:</legend>\n\t<ul>\n";
+		$strProductList .= "<input type=\"hidden\" name=\"action\" value=\"product_delete\" />\t";
+		$strProductList .= "<input type=\"hidden\" name=\"token\" value=\"$_SESSION[token]\" />";
+		
+		$i = 1;
+		foreach($arrProducts as $objProduct)
+		{
+			
+			$strProductList .= "<li>\t<input type=\"checkbox\" name=\"product_id_form[]\" value=$objProduct->id> $objProduct->name</li>\n\t";
+			$i++;
+		}
+		$strProductList .= "</ul><input type=\"submit\" name=\"product_submit\" value=\"$strSubmit\" /></form>";
+		
+		return $strProductList;
+	}
+	
+	
+	
+	/*
+	* Метод осуществляет удаление выбранных продуктов
+	*
+	*@return string: сообщение о результате
+	*/
+	public function delProducts()
+	{
+		// если можно удалить все группы - результат выполнения функции должен быть Истина
+		$strRes = TRUE;
+		//строка запроса для получеения списка продуктов, участвующих в опросах
+		$strQuery = "SELECT DISTINCT 
+						`product_id` 
+					FROM `interview_product` ";
+		
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+				
+			for ($i = 0; $i < count($_POST['product_id_form']); $i++)
+			{	
+				
+				$exist = array();
+				//проверка на возможность удаления
+				foreach($arrResults as $elem)
+				{
+					if ($_POST['product_id_form'][$i] == $elem['product_id'])
+					{
+						$exist[$i] = TRUE;
+					}
+				}
+				
+				foreach($arrResults as $elem)
+				{
+					if (!$exist[$i])
+					{
+						$strQuery = "DELETE FROM `products` WHERE `product_id` = ".$_POST['product_id_form'][$i];
+											
+						try
+						{
+							$stmt = $this->_objDB->prepare($strQuery);
+							$stmt->execute();
+							$stmt->closeCursor();
+							
+						}
+						catch ( Exception $e )
+						{
+							die ($e->getMessage());
+						}
+					}
+					else
+					{	
+						$strRes = FALSE;
+						print_r("Удаление невозможно - продукт уже используется в опросе");
+					}
+				}
+			}
+		}
+		catch ( Exception $e )
+		{
+			die ( $e->getMessage() );
+		}
+		
+		return $strRes;
+	}
+	
 	public function processProductForm()
 	{
 		/*
@@ -304,6 +406,59 @@ FORM_MARKUP;
 		else
 		{
 			return NULL;
+		}
+	}
+	
+	
+	/**
+	 * Метод возвращает массив объектов класса Product зарегистрированных в системе
+	 *
+	 * @return array
+	 */
+	private function _getProductList($id=NULL)
+	{
+		/*
+		 * Получить идентификаторы и названия групп изделий из базы даннных
+		 */
+		$strQuery = "SELECT 
+						`product_id`, 
+						`product_name` 
+					FROM `products`";
+		
+		/*
+		 * Если передан идентификатор, добавить условие
+		 */
+		if ( $id != NULL )
+		{
+			$strQuery .= "\nWHERE `product_id` = $id
+						 LIMIT 1";
+		}
+						
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+				
+			$arrProducts = array();
+			$i = 0;
+			foreach($arrResults as $elem )
+			{
+				try
+				{
+					$arrProducts[$i++] = new Product($elem);
+				}
+				catch ( Exception $e )
+				{
+					die ($e->getMessage() );
+				}
+			}			
+			return $arrProducts;
+		}
+		catch ( Exception $e )
+		{
+			die ( $e->getMessage() );
 		}
 	}
 }

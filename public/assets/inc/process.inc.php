@@ -121,8 +121,27 @@ $arrActions = array(
 			'object' => 'Interview',
 			'method' => 'processOrderForm',
 			'header' => 'Location: ../../admin.php'
+		),
+		'interview_delete' => array(
+			'object' => 'InterviewManager',
+			'method' => 'delInterviews',
+			'header' => 'Location: ../../interviewList.php'
+		),
+		'product_delete' => array(
+			'object' => 'ProductManager',
+			'method' => 'delProducts',
+			'header' => 'Location: ../../productList.php'
+		),
+		'productgroup_delete' => array(
+			'object' => 'ProductGroupManager',
+			'method' => 'delProductGroups',
+			'header' => 'Location: ../../groupList.php'
+		),
+		'enterprise_delete' => array(
+			'object' => 'EnterpriseManager',
+			'method' => 'delEnterprise',
+			'header' => 'Location: ../../enterpriseList.php'
 		)
-		
 	);
 
 /*

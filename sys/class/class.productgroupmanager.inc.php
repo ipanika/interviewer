@@ -41,13 +41,19 @@ class ProductGroupManager extends DB_Connect
 		 */
 		$arrGroups = $this->_getProductGroupList();
 		
-		$strGroupList = "<label><strong>Список групп кондитерских изделий</strong></label>\n<ul>";
+		$strSubmit = "Удалить выбранные группы";
 		
+		$strGroupList = "<form action=\"assets/inc/process.inc.php\" method=\"post\"><legend>Список групп кондитерских изделий</legend>\n\t<ul>\n";
+		$strGroupList .= "<input type=\"hidden\" name=\"action\" value=\"productgroup_delete\" />\t";
+		$strGroupList .= "<input type=\"hidden\" name=\"token\" value=\"$_SESSION[token]\" />";
+		
+		$i = 1;
 		foreach($arrGroups as $objProductGroup)
 		{
-			$strGroupList .= "<li>$objProductGroup->name</li>";
+			$strGroupList .= "<li>\t<input type=\"checkbox\" name=\"productgroup_id_form[]\" value=$objProductGroup->id> $objProductGroup->name</li>\n\t";
+			$i++;
 		}
-		$strGroupList .= "</ul>";
+		$strGroupList .= "</ul><input type=\"submit\" name=\"productgroup_submit\" value=\"$strSubmit\" /></form>";
 		
 		return $strGroupList;
 	}
@@ -193,6 +199,77 @@ PRODUCT_GROUP_FORM;
 		{
 			return $e->getMessage();
 		}
+	}
+	
+	/*
+	* Метод осуществляет удаление групп кондитерских изделий
+	*
+	*@return string: сообщение о результате
+	*/
+	public function delProductGroups()
+	{
+		// если можно удалить все группы - результат выполнения функции должен быть Истина
+		$strRes = TRUE;
+		//строка запроса для получеения списка групп, участвующих в опросах
+		$strQuery = "SELECT DISTINCT 
+						`productgroup_id` 
+					FROM `products` 
+					LEFT JOIN `interview_product` 
+						ON `products`.`product_id` = `interview_product`.`product_id`";
+		
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+			
+			for ($i = 0; $i < count($_POST['productgroup_id_form']); $i++)
+			{	
+				
+				$exist = array();
+				//проверка на возможность удаления
+				foreach($arrResults as $elem)
+				{
+					if ($_POST['productgroup_id_form'][$i] == $elem['productgroup_id'])
+					{
+						$exist[$i] = TRUE;
+					}
+				}
+				foreach($arrResults as $elem)
+				{
+					if (!$exist[$i])
+					{
+						$strQuery = "DELETE FROM `products` WHERE `productgroup_id` = ".$_POST['productgroup_id_form'][$i];
+						$strQuery2 = "DELETE FROM `productgroups` WHERE `productgroup_id` = ". $_POST['productgroup_id_form'][$i];
+						
+						try
+						{
+							$stmt = $this->_objDB->prepare($strQuery);
+							$stmt->execute();
+							$stmt->closeCursor();
+							$stmt = $this->_objDB->prepare($strQuery2);
+							$stmt->execute();
+							$stmt->closeCursor();
+						}
+						catch ( Exception $e )
+						{
+							die ($e->getMessage());
+						}
+					}
+					else
+					{	
+						$strRes ="Удаление невозможно - группа уже используется в опросе";
+					}
+				}
+			}
+		}
+		catch ( Exception $e )
+		{
+			die ( $e->getMessage() );
+		}
+		
+		return $strRes;
 	}
 		
 }

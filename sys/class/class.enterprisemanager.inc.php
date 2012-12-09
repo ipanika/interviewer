@@ -41,13 +41,20 @@ class EnterpriseManager extends DB_Connect
 		 */
 		$arrEnterprises = $this->_getEnterpriseList();
 		
-		$strEnterpriseList = "<label><strong>Список выпускающих предприятий:</strong></label>\n<ul>";
+		$strSubmit = "Удалить выбранные предприятия";
 		
+		$strEnterpriseList = "<form action=\"assets/inc/process.inc.php\" method=\"post\"<legend>Список выпускающих предприятий:</legend>\n\t<ul>\n";
+		$strEnterpriseList .= "<input type=\"hidden\" name=\"action\" value=\"enterprise_delete\" />\t";
+		$strEnterpriseList .= "<input type=\"hidden\" name=\"token\" value=\"$_SESSION[token]\" />";
+		
+		$i = 1;
 		foreach($arrEnterprises as $objEnteprise)
 		{
-			$strEnterpriseList .= "<li>$objEnteprise->name</li>";
+			
+			$strEnterpriseList .= "<li>\t<input type=\"checkbox\" name=\"enterprise_id_form[]\" value=$objEnteprise->id> $objEnteprise->name</li>\n\t";
+			$i++;
 		}
-		$strEnterpriseList .= "</ul>";
+		$strEnterpriseList .= "</ul><input type=\"submit\" name=\"enterprise_submit\" value=\"$strSubmit\" /></form>";
 		
 		return $strEnterpriseList;
 	}
@@ -214,6 +221,76 @@ PRODUCT_GROUP_FORM;
 		{
 			return $e->getMessage();
 		}
+	}
+	
+	/*
+	* Метод осуществляет удаление выпускающих предприятий
+	*
+	*@return string: сообщение о результате
+	*/
+	public function delEnterprise()
+	{
+		// если можно удалить все группы - результат выполнения функции должен быть Истина
+		$strRes = TRUE;
+		//строка запроса для получеения списка групп, участвующих в опросах
+		$strQuery = "SELECT DISTINCT 
+						`enterprise_id` 
+					FROM `interviews` ";
+		
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+				
+			for ($i = 0; $i < count($_POST['enterprise_id_form']); $i++)
+			{	
+				
+				$exist = array();
+				//проверка на возможность удаления
+				foreach($arrResults as $elem)
+				{
+					if ($_POST['enterprise_id_form'][$i] == $elem['enterprise_id'])
+					{
+						$exist[$i] = TRUE;
+					}
+				}
+				
+				foreach($arrResults as $elem)
+				{
+					if (!$exist[$i])
+					{
+						$strQuery = "DELETE FROM `products` WHERE `enterprise_id` = ".$_POST['enterprise_id_form'][$i];
+						$strQuery2 = "DELETE FROM `enterprises` WHERE `enterprise_id` = ". $_POST['enterprise_id_form'][$i];
+						
+						try
+						{
+							$stmt = $this->_objDB->prepare($strQuery);
+							$stmt->execute();
+							$stmt->closeCursor();
+							$stmt = $this->_objDB->prepare($strQuery2);
+							$stmt->execute();
+							$stmt->closeCursor();
+						}
+						catch ( Exception $e )
+						{
+							die ($e->getMessage());
+						}
+					}
+					else
+					{	
+						$strRes = "Удаление невозможно - предприятие уже используется в опросе";
+					}
+				}
+			}
+		}
+		catch ( Exception $e )
+		{
+			die ( $e->getMessage() );
+		}
+		
+		return $strRes;
 	}
 }
  

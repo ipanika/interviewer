@@ -45,7 +45,9 @@ $objInterview = new Interview($objDB);
 	<a href="changeCurInterview.php" class="button">Сменить текущий дегустационный лист</a>
 	<a href="report.php" class="button">Отчеты по проведенным опросам</a><br>
 	<a href="groupList.php" >Список групп кондитерских изделий</a><br>
-	<a href="enterpriseList.php">Список выпускающих предприятий</a>
+	<a href="enterpriseList.php">Список выпускающих предприятий</a><br>
+	<a href="interviewList.php">Список дегустационных листов</a><br>
+	<a href="productList.php">Список образцов продукции</a><br>
 </div><!-- end #content -->
 
 <?php
