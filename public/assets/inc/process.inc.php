@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 /*
  * Запуск сеанса
@@ -17,6 +17,22 @@ foreach ( $C as $name => $val )
 {
 	define($name, $val);
 }
+
+/*
+ * Определить функцию автозагрузки определения классов
+ */
+function myAutoload($strClassName)
+{
+	$strFileName = '../../../sys/class/class.'
+			.strtolower($strClassName).'.inc.php';
+	if ( file_exists($strFileName) )
+	{
+		include_once $strFileName;
+	}
+}
+
+// регистрируем собственную функцию автозагрузки во избежание пересечений
+spl_autoload_register('myAutoload');
 
 /*
  * Создать поисковый массив для действий, выполняемых над формой
@@ -175,16 +191,6 @@ else
 	// пользователя на основную страницу
 	header("Location: ../../");
 	exit;
-}
-
-function __autoLoad($strClassName)
-{
-	$strFileName = '../../../sys/class/class.'
-			.strtolower($strClassName).'.inc.php';
-	if ( file_exists($strFileName) )
-	{
-		include_once $strFileName;
-	}
 }
 
 ?>

@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 /**
  * Управляет формированием и отображением отчетов по проведенным 
@@ -114,10 +114,7 @@ class Report extends DB_Connect
 		 * Добавить форму для экспорта отчета в формате Excel
 		 */
 		$strExportForm =<<<EXPORTFORM
-			<form action="assets/inc/process.inc.php" method="post">
-			<input type="hidden" name="token" value="$_SESSION[token]" />
-			<input type="hidden" name="action" value="export_report" />
-			<input type="submit" name="export_submit" value="Экспортировать отчет в Excel" />
+			<a href="download.php" class="button">Экспортировать отчет в Excel</a>
 </form>
 EXPORTFORM;
 		

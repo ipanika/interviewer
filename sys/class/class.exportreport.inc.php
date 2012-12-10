@@ -1,7 +1,9 @@
-﻿<?php
+<?php
 
 /** Include PHPExcel */
 require_once 'PHPExcel/PHPExcel.php';
+
+define("HEADERH_HEIGHT", 2);
 
 /**
  * Управляет формированием и отображением отчетов по проведенным 
@@ -67,7 +69,7 @@ class ExportReport extends DB_Connect
 	 * Формирует отчет в формате Excel и отправляет файл пользователю,
 	 * если идентификатор опроса был сохранен в сеансе
 	 *
-	 * @return string: HTML-разметка
+	 * @return object: Объект класс PHPExcel содержащий сформированный отчет
 	 */
 	public function getReport()
 	{
@@ -76,7 +78,7 @@ class ExportReport extends DB_Connect
 		 */
 		if (!isset($_SESSION['report']['interview_id']) )
 		{
-			return "";
+			return TRUE;
 		}
 		
 		/*
@@ -119,7 +121,7 @@ class ExportReport extends DB_Connect
 				return $strHeader . $this->buildProfilReport($interviewId) . $strTasterList;
 				break;
 			case M_COMPLX:
-				return $strHeader . $this->buildComplxReport($interviewId). $strTasterList;
+				$objPHPExcel = $this->buildComplxReport($interviewId);
 				break;
 			case M_CONSUM:
 				return $strHeader . $this->buildConsumReport($interviewId). $strTasterList;
@@ -128,11 +130,13 @@ class ExportReport extends DB_Connect
 				return $strHeader . $this->buildTriangReport($interviewId). $strTasterList;
 				break;
 		}
+		
+		return $objPHPExcel;
 	}
 	
 	
 	/**
-	 * Формирует таблицу отчет по потребительскому опросу
+	 * Формирует таблицу-отчет по потребительскому опросу
 	 *
 	 * @param int: идентификатор опроса в базе данных
 	 * @return string: HTML-разметка таблицы отчета
@@ -268,7 +272,6 @@ class ExportReport extends DB_Connect
 				}
 			}
 		}
-		
 		
 		/*
 		 * Добавить строки таблицы для каждого образца
@@ -570,7 +573,8 @@ TRIANG;
 	 * Формирует таблицу отчет по опросу сформированному по комплексному методу
 	 *
 	 * @param int: идентификатор опроса в базе данных
-	 * @return string: HTML-разметка таблицы отчета
+	 * @return mixed: FALSE в случае отсутствия данных по переданному опросу, объект 
+	 *	PHPExcel содержащий таблицу отчет.
 	 */
 	private function buildComplxReport($interviewId)
 	{
@@ -626,14 +630,14 @@ TRIANG;
 			
 			if ( isset($arrResults[0]) )
 			{
-				$strReport = $this->_getComplxReport($arrResults);
+				$objPHPExcel = $this->_getComplxReport($arrResults);
 			}
 			else 
 			{
-				$strReport = "По данному опросу нет данных";
+				return FALSE;
 			}
 									
-			return $strReport;
+			return $objPHPExcel;
 		}
 		catch ( Exception $e )
 		{
@@ -684,10 +688,10 @@ TRIANG;
 	}
 	
 	/**
-	 * Возвращает HTML-таблицу отчета о проведенном опросе
+	 * Возвращает таблицу отчета о проведенном опросе
 	 *
 	 * @param array: массив содержащий результат запроса к базе данных
-	 * @return string: HTML-таблица
+	 * @return object: объект PHPExcel содержащий таблицу отчета
 	 */
 	private function _getComplxReport($arrRes)
 	{
@@ -749,43 +753,44 @@ TRIANG;
 		$this->_printComplxHeader($objPHPExcel);
 		
 		/*
+		 * Вывести строки по каждому образцу 
+		 */
+		$productNum = 0;
+		foreach ($arrProducts as $arrProduct)
+		{
+			$this->_printComplxRowForProduct($objPHPExcel, $arrProduct, $productNum);
+			$productNum++;
+		}
+		
+		/*
+		 * Применить стиль ко всем ячейкам документа
+		 */
+		$styleArray = array(
+			'alignment' => array(
+				'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
+				'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER,
+				'wrapText' => true
+			),
+			'borders' => array(
+				'allborders' => array(
+					'style' => PHPExcel_Style_Border::BORDER_THIN,
+				),
+			),
+		);
+		
+		//$objPHPExcel->getActiveSheet()->getStyleByColumnAndRow('A1:S12')->applyFromArray($styleArray);
+		
+		
+		/*
+		 * Вернуть сформированный документ
+		 */ 
+		return $objPHPExcel;
+		
+		/*
 		 * Сохранить файл
 		 */
 		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel5');
 		$objWriter->save(str_replace('.php', '.xls', __FILE__));
-		
-		/*
-		 * Добавить строки таблицы для каждого образца
-		 */
-		/* $strTab = "";
-		foreach($arrProducts as $arrProduct)
-		{
-			$strTab .= $this->_printComplxRowForProduct($arrProduct);
-		}
-		
-		return <<<REP
-		<table width="100%" border="1" cellpadding="4" cellspacing="0">
-			<tr>
-				<td rowspan="2">Наименование образца</td>
-				<td rowspan="2">Номер показателя</td>
-				<td rowspan="2">Наименование показателя </td>
-				<td rowspan="2">Вес показателя</td>
-				<th colspan="7">Количество участников дегустации, поставивших оценки:</th>
-				<td rowspan="2">Итого, участников</td>
-				<td rowspan="2">Средний балл</td>
-				<td rowspan="2">Оценка с учетом весомости</td>
-				<td rowspan="2">Общая оценка</td>
-				<td rowspan="2">Доля участников, давших минимальные оценки, %(1, 2, 3)</td>
-				<td rowspan="2">Доля участников, давших максимальные оценки, % (5, 6, 7)</td>
-				<td rowspan="2">Доля участников, давших оценки свыше 5 баллов, % (6, 7)</td>
-				<td rowspan="2">Комментарии участников</td>
-			</tr>
-			<tr>
-				<th>1.0</th><th>2.0</th><th>3.0</th><th>4.0</th><th>5.0</th><th>6.0</th><th>7.0</th>
-			</tr>
-			$strTab
-		</table>
-REP; */
 	}
 	
 	/**
@@ -824,12 +829,21 @@ REP; */
 			->setCellValueByColumnAndRow(17, 1, 'Доля участников давших оценки свыше 5 баллов, %(6, 7)')
 			->setCellValueByColumnAndRow(18, 1, 'Комментарии участников');
 		
+		// объединить ячейки первой и второй строки
+		for ($i = 0; $i < 19; $i++)
+		{
+			if ( $i>=4 && $i<=10 )
+			{
+				continue;
+			}
+			$objPHPExcel->setActiveSheetIndex(0)->mergeCellsByColumnAndRow( $i, 1, $i, 2);
+		}
 	}
 	
 	/**
 	 * Выводит строку таблицы полностью описывающюю данный продукт
 	 */
-	private function _printComplxRowForProduct($arrProduct)
+	private function _printComplxRowForProduct($objPHPExcel, $arrProduct, $productNum)
 	{
 		/*
 		 * Группируем данные по вопросам к данному образцу
@@ -887,7 +901,7 @@ REP; */
 				$question['averToRate'] = $average * $question['question_rate'];
 				$overallRating += $average * $question['question_rate'];
 				//выводим данный вопрос
-				$strLastRows .= $this->_printComplxRow($question);
+				$this->_printComplxRow($objPHPExcel, $question, $productNum, $i+1, count($arrQuestions));
 			}
 			$i++;
 		}
@@ -907,9 +921,60 @@ REP; */
 		$question['averToRate'] = $average * $question['question_rate'];
 		$overallRating += $average * $question['question_rate'];
 		//выводим 1 вопрос, название образца и суммарный балл
-		$strFirstRow = $this->_printComplxFirstRow($arrProduct['product_name'], $question, $i, $overallRating);
+		$this->_printComplxFirstRow($objPHPExcel,$arrProduct['product_name'], $question, $productNum, $i, $overallRating);
+	}
+	
+	/**
+	 * Возвращает строку HTML-таблицы
+	 *
+	 * @param object: объект PHPExcel
+	 * @param array: массив данных для заполнения полей строки
+	 * @param int: номер образца
+	 * @param int: номер вопроса
+	 * @return 
+	 */
+	private function _printComplxRow($objPHPExcel, $arrRow, $productNum, $questNum, $amountQuest)
+	{
+		$scores = $arrRow['scores'];
+		$percentOfMin = round(100 * ($scores[1] + $scores[2] + $scores[3]) / $arrRow['numOfTasters'], 2);
+		$percentOfMax = round(100 * ($scores[5] + $scores[6] + $scores[7]) / $arrRow['numOfTasters'], 2);
+		$percentOfOver5 = round(100 * ($scores[6] + $scores[7]) / $arrRow['numOfTasters'], 2);
 		
-		return $strFirstRow . $strLastRows;
+		/*
+		 * Вычислить номер строки в которую необходимо записать данные
+		 */
+		$rowNum = $amountQuest * $productNum + $questNum + HEADERH_HEIGHT;
+		
+		$objPHPExcel->setActiveSheetIndex(0)
+			// номер показателя (вопроса)
+			->setCellValueByColumnAndRow(1, $rowNum, $arrRow['question_num'])
+			// наименование показателя
+			->setCellValueByColumnAndRow(2, $rowNum, $arrRow['question_text'])
+			// вес показателя
+			->setCellValueByColumnAndRow(3, $rowNum, $arrRow['question_rate'])
+			// количество участников поставивших оценки
+			->setCellValueByColumnAndRow(4, $rowNum, $scores[1])
+			->setCellValueByColumnAndRow(5, $rowNum, $scores[2])
+			->setCellValueByColumnAndRow(6, $rowNum, $scores[3])
+			->setCellValueByColumnAndRow(7, $rowNum, $scores[4])
+			->setCellValueByColumnAndRow(8, $rowNum, $scores[5])
+			->setCellValueByColumnAndRow(9, $rowNum, $scores[6])
+			->setCellValueByColumnAndRow(10, $rowNum, $scores[7])
+			// итого, участников
+			->setCellValueByColumnAndRow(11, $rowNum, $arrRow['numOfTasters'])
+			// средний бал
+			->setCellValueByColumnAndRow(12, $rowNum, $arrRow['average'])
+			// оценка с учетом весомости
+			->setCellValueByColumnAndRow(13, $rowNum, $arrRow['averToRate'])
+			// доля участников давших минимальные оценки
+			->setCellValueByColumnAndRow(15, $rowNum, $percentOfMin)
+			// доля участников давших максимальные оценки
+			->setCellValueByColumnAndRow(16, $rowNum, $percentOfMax)
+			// доля участников давших оценки свыше 5 баллов
+			->setCellValueByColumnAndRow(17, $rowNum, $percentOfOver5)
+			// коментарии участников
+			->setCellValueByColumnAndRow(18, $rowNum, $arrRow['comment']);
+			
 	}
 	
 	/**
@@ -918,70 +983,54 @@ REP; */
 	 * @param array: массив данных для заполнения полей строки
 	 * @return string: HTML-строка
 	 */
-	private function _printComplxRow($arrRow)
+	private function _printComplxFirstRow($objPHPExcel, $strProductName, $arrRow, $productNum, $amountQuest, $overallRating)
 	{
 		$scores = $arrRow['scores'];
 		$percentOfMin = round(100 * ($scores[1] + $scores[2] + $scores[3]) / $arrRow['numOfTasters'], 2);
 		$percentOfMax = round(100 * ($scores[5] + $scores[6] + $scores[7]) / $arrRow['numOfTasters'], 2);
 		$percentOfOver5 = round(100 * ($scores[6] + $scores[7]) / $arrRow['numOfTasters'], 2);
-		return <<<PRODUCT_RES
-			<tr align="center">
-				<td>$arrRow[question_num]</td>
-				<td>$arrRow[question_text]</td>
-				<td>$arrRow[question_rate]</td>
-				<td>$scores[1]</td>
-				<td>$scores[2]</td>
-				<td>$scores[3]</td>
-				<td>$scores[4]</td>
-				<td>$scores[5]</td>
-				<td>$scores[6]</td>
-				<td>$scores[7]</td>
-				<td>$arrRow[numOfTasters]</td>
-				<td>$arrRow[average]</td>
-				<td>$arrRow[averToRate]</td>
-				<td>$percentOfMin</td>
-				<td>$percentOfMax</td>
-				<td>$percentOfOver5</td>
-				<td>$arrRow[comment]</td>
-			</tr>
-PRODUCT_RES;
-	}
-	
-	/**
-	 * Возвращает строку HTML-таблицы
-	 *
-	 * @param array: массив данных для заполнения полей строки
-	 * @return string: HTML-строка
-	 */
-	private function _printComplxFirstRow($strProductName, $arrRow, $numQuest, $overallRating)
-	{
-		$scores = $arrRow['scores'];
-		$percentOfMin = round(100 * ($scores[1] + $scores[2] + $scores[3]) / $arrRow['numOfTasters'], 2);
-		$percentOfMax = round(100 * ($scores[5] + $scores[6] + $scores[7]) / $arrRow['numOfTasters'], 2);
-		$percentOfOver5 = round(100 * ($scores[6] + $scores[7]) / $arrRow['numOfTasters'], 2);
-		return <<<PRODUCT_RES
-			<tr align="center">
-				<td rowspan="$numQuest">$strProductName</td>
-				<td>$arrRow[question_num]</td>
-				<td>$arrRow[question_text]</td>
-				<td>$arrRow[question_rate]</td>
-				<td>$scores[1]</td>
-				<td>$scores[2]</td>
-				<td>$scores[3]</td>
-				<td>$scores[4]</td>
-				<td>$scores[5]</td>
-				<td>$scores[6]</td>
-				<td>$scores[7]</td>
-				<td>$arrRow[numOfTasters]</td>
-				<td>$arrRow[average]</td>
-				<td>$arrRow[averToRate]</td>
-				<td rowspan="$numQuest">$overallRating</td>
-				<td>$percentOfMin</td>
-				<td>$percentOfMax</td>
-				<td>$percentOfOver5</td>
-				<td>$arrRow[comment]</td>
-			</tr>
-PRODUCT_RES;
+		
+		/*
+		 * Вычислить номер строки в которую необходимо записать данные
+		 */
+		$rowNum = $amountQuest * $productNum + 1 + HEADERH_HEIGHT;
+		
+		$objPHPExcel->setActiveSheetIndex(0)
+			// название образца
+			->setCellValueByColumnAndRow(0, $rowNum, $strProductName)
+			// объединить ячейки для названия образца
+			->mergeCellsByColumnAndRow( 0, $rowNum, 0, $rowNum+$amountQuest-1)
+			// номер показателя (вопроса)
+			->setCellValueByColumnAndRow(1, $rowNum, $arrRow['question_num'])
+			// наименование показателя
+			->setCellValueByColumnAndRow(2, $rowNum, $arrRow['question_text'])
+			// вес показателя
+			->setCellValueByColumnAndRow(3, $rowNum, $arrRow['question_rate'])
+			// количество участников поставивших оценки
+			->setCellValueByColumnAndRow(4, $rowNum, $scores[1])
+			->setCellValueByColumnAndRow(5, $rowNum, $scores[2])
+			->setCellValueByColumnAndRow(6, $rowNum, $scores[3])
+			->setCellValueByColumnAndRow(7, $rowNum, $scores[4])
+			->setCellValueByColumnAndRow(8, $rowNum, $scores[5])
+			->setCellValueByColumnAndRow(9, $rowNum, $scores[6])
+			->setCellValueByColumnAndRow(10, $rowNum, $scores[7])
+			// итого, участников
+			->setCellValueByColumnAndRow(11, $rowNum, $arrRow['numOfTasters'])
+			// средний бал
+			->setCellValueByColumnAndRow(12, $rowNum, $arrRow['average'])
+			// оценка с учетом весомости
+			->setCellValueByColumnAndRow(13, $rowNum, $arrRow['averToRate'])
+			// общий балл
+			->setCellValueByColumnAndRow(14, $rowNum, $overallRating)
+			->mergeCellsByColumnAndRow( 14, $rowNum, 14, $rowNum+$amountQuest-1)
+			// доля участников давших минимальные оценки
+			->setCellValueByColumnAndRow(15, $rowNum, $percentOfMin)
+			// доля участников давших максимальные оценки
+			->setCellValueByColumnAndRow(16, $rowNum, $percentOfMax)
+			// доля участников давших оценки свыше 5 баллов
+			->setCellValueByColumnAndRow(17, $rowNum, $percentOfOver5)
+			// коментарии участников
+			->setCellValueByColumnAndRow(18, $rowNum, $arrRow['comment']);
 	}
 
 	/**
@@ -1328,5 +1377,4 @@ PRODUCT_RES;
 		
 	}
 }
- 
 ?>

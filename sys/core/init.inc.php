@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 /*
  * Отвечает за загрузку и определение всех необходимых констант,
@@ -46,7 +46,7 @@ $objDB->exec('SET NAMES utf8');
  * делается попытка создания экземпляра класса, но сам класс к этому 
  * времени еще не был загружен.
  */
-function __autoload($strClassName)
+function myAutoload($strClassName)
 {
 	$strFileName = "../sys/class/class." . strtolower($strClassName) . ".inc.php";
 	if ( file_exists($strFileName) )
@@ -54,4 +54,7 @@ function __autoload($strClassName)
 		include_once $strFileName;
 	}
 }
+
+// Зарегистрировать собственную функцию автозагрузки во избежание пересечений
+spl_autoload_register('myAutoload');
 ?>
