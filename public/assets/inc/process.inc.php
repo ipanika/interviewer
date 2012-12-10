@@ -141,6 +141,11 @@ $arrActions = array(
 			'object' => 'EnterpriseManager',
 			'method' => 'delEnterprise',
 			'header' => 'Location: ../../enterpriseList.php'
+		),
+		'export_report' => array(
+			'object' => 'ExportReport',
+			'method' => 'getReport',
+			'header' => 'Location: ../../report.php'
 		)
 	);
 

@@ -1,10 +1,13 @@
 ﻿<?php
 
+/** Include PHPExcel */
+require_once 'PHPExcel/PHPExcel.php';
+
 /**
  * Управляет формированием и отображением отчетов по проведенным 
  * дегустационным тестированиям
  */
-class Report extends DB_Connect
+class ExportReport extends DB_Connect
 {
 	/**
 	 * Создает объект базы
@@ -61,12 +64,12 @@ class Report extends DB_Connect
 	}
 	
 	/**
-	 * Отображает форму отчета по проведенному дегустационному опросу,
+	 * Формирует отчет в формате Excel и отправляет файл пользователю,
 	 * если идентификатор опроса был сохранен в сеансе
 	 *
 	 * @return string: HTML-разметка
 	 */
-	public function displayReport()
+	public function getReport()
 	{
 		/*
 		 * Вернуть пустую строку, если идентификатор опроса не передан
@@ -95,49 +98,36 @@ class Report extends DB_Connect
 		/*
 		 * Задать шапку отчета
 		 */
-		$strHeader ="<label>Отчет по дегустационному листу: $strInterviewName от $strInterviewDate</label>
-					<label>Выпускающее предприятие: $strEnterpriseName</label><br>";
+		/* $strHeader ="<label>Отчет по дегустационному листу: $strInterviewName от $strInterviewDate</label>
+					<label>Выпускающее предприятие: $strEnterpriseName</label><br>"; */
 		
 		/*
 		 * Получить список участников дегустации
 		 */
-		$arrTasterList = $this->_getTasterList($interviewId);
+		//$arrTasterList = $this->_getTasterList($interviewId);
 		// построить HTML список участников
-		$strTasterList = "<label>Участники дегустации:</label><ol>";
+		/* $strTasterList = "<label>Участники дегустации:</label><ol>";
 		foreach ($arrTasterList as $arrTaster)
 		{
 			$strTasterList .= "<li>$arrTaster[taster_surname] $arrTaster[taster_name]</li>";
 		}
 		$strTasterList .= "</ol>";
-		
-		/*
-		 * Добавить форму для экспорта отчета в формате Excel
 		 */
-		$strExportForm =<<<EXPORTFORM
-			<form action="assets/inc/process.inc.php" method="post">
-			<input type="hidden" name="token" value="$_SESSION[token]" />
-			<input type="hidden" name="action" value="export_report" />
-			<input type="submit" name="export_submit" value="Экспортировать отчет в Excel" />
-</form>
-EXPORTFORM;
-		
 		switch($interviewType)
 		{
 			case M_PROFIL:
-				$strReport = $this->buildProfilReport($interviewId);
+				return $strHeader . $this->buildProfilReport($interviewId) . $strTasterList;
 				break;
 			case M_COMPLX:
-				$strReport = $this->buildComplxReport($interviewId);
+				return $strHeader . $this->buildComplxReport($interviewId). $strTasterList;
 				break;
 			case M_CONSUM:
-				$strReport = $this->buildConsumReport($interviewId);
+				return $strHeader . $this->buildConsumReport($interviewId). $strTasterList;
 				break;
 			case M_TRIANG:
-				$strReport = $this->buildTriangReport($interviewId);
+				return $strHeader . $this->buildTriangReport($interviewId). $strTasterList;
 				break;
 		}
-		
-		return $strHeader . $strReport . $strTasterList . $strExportForm;
 	}
 	
 	
@@ -606,7 +596,7 @@ TRIANG;
 									`tasters`.`taster_name`)
 								END
 							)
-							SEPARATOR '<br>') AS `comment`
+							SEPARATOR '\n\r') AS `comment`
 					FROM `answers`
 					LEFT JOIN `interview_product` 
 						ON `interview_product`.`interview_product_id` = `answers`.`interview_product_id`
@@ -747,10 +737,27 @@ TRIANG;
 			}
 		}
 		
+		
+		/*
+		 * Создать объект класса PHPExcel
+		 */
+		$objPHPExcel = new PHPExcel();
+		
+		/*
+		 * Вывести шапку таблицы отчета
+		 */
+		$this->_printComplxHeader($objPHPExcel);
+		
+		/*
+		 * Сохранить файл
+		 */
+		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel5');
+		$objWriter->save(str_replace('.php', '.xls', __FILE__));
+		
 		/*
 		 * Добавить строки таблицы для каждого образца
 		 */
-		$strTab = "";
+		/* $strTab = "";
 		foreach($arrProducts as $arrProduct)
 		{
 			$strTab .= $this->_printComplxRowForProduct($arrProduct);
@@ -778,7 +785,45 @@ TRIANG;
 			</tr>
 			$strTab
 		</table>
-REP;
+REP; */
+	}
+	
+	/**
+	 * Выводит шапку таблицы для отчета по комплексному опросу
+	 *
+	 * @param object: объект класса PHPExcel
+	 */
+	private function _printComplxHeader($objPHPExcel)
+	{
+		// Установить свойства формируемого документа
+		$objPHPExcel->getProperties()->setCreator("АС ДКИ")
+									 ->setLastModifiedBy("АС ДКИ");
+		
+		// Добавить заколовки столбцов
+		$objPHPExcel->setActiveSheetIndex(0)
+           ->setCellValueByColumnAndRow(0, 1, 'Наименование образца')
+			->setCellValueByColumnAndRow(1, 1, 'Номер показателя')
+			->setCellValueByColumnAndRow(2, 1, 'Наименование показателя')
+			->setCellValueByColumnAndRow(3, 1, 'Вес показателя')
+			// Объединить следующие 7 ячеек
+			->setCellValueByColumnAndRow(4, 1, 'Количество участников дегустации, поставивших оценки:')
+			->mergeCellsByColumnAndRow( 4, 1, 10, 1)
+			->setCellValueByColumnAndRow(4, 2, '1.0')
+			->setCellValueByColumnAndRow(5, 2, '2.0')
+			->setCellValueByColumnAndRow(6, 2, '3.0')
+			->setCellValueByColumnAndRow(7, 2, '4.0')
+			->setCellValueByColumnAndRow(8, 2, '5.0')
+			->setCellValueByColumnAndRow(9, 2, '6.0')
+			->setCellValueByColumnAndRow(10, 2, '7.0')
+			->setCellValueByColumnAndRow(11, 1, 'Итого, участников')
+			->setCellValueByColumnAndRow(12, 1, 'Средний бал')
+			->setCellValueByColumnAndRow(13, 1, 'Оценка с учетом весомости')
+			->setCellValueByColumnAndRow(14, 1, 'Общая оценка')
+			->setCellValueByColumnAndRow(15, 1, 'Доля участников давших минимальные оценки, %(1, 2, 3)')
+			->setCellValueByColumnAndRow(16, 1, 'Доля участников давших максимальные оценки, %(5, 6, 7)')
+			->setCellValueByColumnAndRow(17, 1, 'Доля участников давших оценки свыше 5 баллов, %(6, 7)')
+			->setCellValueByColumnAndRow(18, 1, 'Комментарии участников');
+		
 	}
 	
 	/**
