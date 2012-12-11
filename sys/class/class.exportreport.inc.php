@@ -106,28 +106,21 @@ class ExportReport extends DB_Connect
 		/*
 		 * Получить список участников дегустации
 		 */
-		//$arrTasterList = $this->_getTasterList($interviewId);
-		// построить HTML список участников
-		/* $strTasterList = "<label>Участники дегустации:</label><ol>";
-		foreach ($arrTasterList as $arrTaster)
-		{
-			$strTasterList .= "<li>$arrTaster[taster_surname] $arrTaster[taster_name]</li>";
-		}
-		$strTasterList .= "</ol>";
-		 */
+		$arrTasterList = $this->_getTasterList($interviewId);
+		
 		switch($interviewType)
 		{
 			case M_PROFIL:
 				return $strHeader . $this->buildProfilReport($interviewId) . $strTasterList;
 				break;
 			case M_COMPLX:
-				$objPHPExcel = $this->buildComplxReport($interviewId);
+				$objPHPExcel = $this->buildComplxReport($interviewId, $arrTasterList);
 				break;
 			case M_CONSUM:
 				return $strHeader . $this->buildConsumReport($interviewId). $strTasterList;
 				break;
 			case M_TRIANG:
-				return $strHeader . $this->buildTriangReport($interviewId). $strTasterList;
+				$objPHPExcel = $this->buildTriangReport($interviewId, $arrTasterList);
 				break;
 		}
 		
@@ -493,12 +486,12 @@ PRODUCT_RES;
 	 * @param int: идентификатор опроса в базе данных
 	 * @return string: HTML-разметка таблицы отчета
 	 */
-	private function buildTriangReport($interviewId)
+	private function buildTriangReport($interviewId, $arrTasterList)
 	{
 		$strQuery = "SELECT
 						COUNT(`trianganswers`.`product_id`) AS `count_value`,
 						`products`.`product_name`,
-						GROUP_CONCAT(`trianganswers`.`comment` SEPARATOR '<br>') AS `comment`
+						GROUP_CONCAT(`trianganswers`.`comment` SEPARATOR '\n\r') AS `comment`
 					FROM `interview_product`
 					LEFT JOIN `products`
 						ON `products`.`product_id` = `interview_product`.`product_id`
@@ -544,29 +537,123 @@ PRODUCT_RES;
 		$z = 3.09;
 		$numCorrectAnswersB = (int)($numTasters/3 + $z * sqrt(2*$numTasters/9) + 0.5 );
 		
-		return <<<TRIANG
-		<table width="100%" border="1" cellpadding="4" cellspacing="0">
-			<tr align="center">
-				<td>Количество участников</td>
-				<td>Наименование образца</td>
-				<td>Количество оценок образца</td>
-				<td>Число требуемых правильных ответов при вероятности 0.001</td>
-				<td>Комментарии участников</td>
-			</tr>
-			<tr  align="center">
-				<td rowspan="2">$numTasters</td>
-				<td>Образец A: $strProductNameA</td>
-				<td>$productAValue</td>
-				<td>$numCorrectAnswersA</td>
-				<td rowspan="2">$comments</td>
-			</tr>
-			<tr  align="center">
-				<td>Образец B: $strProductNameB</td>
-				<td>$productBValue</td>
-				<td>$numCorrectAnswersB</td>
-			</tr>
-		</table>
-TRIANG;
+		
+		/*
+		 * Создать объект класса PHPExcel
+		 */
+		$objPHPExcel = new PHPExcel();
+		
+		/*
+		 * Напечатать шапку отчета
+		 * Шапка занимает первые две строки 
+		 */
+		$this->_printHeader($interviewId, $objPHPExcel);
+		
+		
+		$objSheet = $objPHPExcel->setActiveSheetIndex(0);
+		
+		// Установить ширину столбцов
+		$objSheet->getColumnDimension('A')->setWidth(12);
+		$objSheet->getColumnDimension('B')->setWidth(22);
+		$objSheet->getColumnDimension('C')->setWidth(21);
+		$objSheet->getColumnDimension('D')->setWidth(20);
+		$objSheet->getColumnDimension('E')->setWidth(30);
+		
+		// Добавить заколовки столбцов
+		$objSheet->setCellValueByColumnAndRow(0, 4, 'Количество участников');
+		$objSheet->getStyleByColumnAndRow(0, 4)->getAlignment()->setWrapText(true);
+		$objSheet->setCellValueByColumnAndRow(1, 4, 'Наименование образца');
+		$objSheet->getStyleByColumnAndRow(1, 4)->getAlignment()->setWrapText(true);
+		$objSheet->setCellValueByColumnAndRow(2, 4, 'Количество оценок образца');
+		$objSheet->getStyleByColumnAndRow(2, 4)->getAlignment()->setWrapText(true);
+		$objSheet->setCellValueByColumnAndRow(3, 4, 'Число требуемых правильных ответов при вероятности 0.001');
+		$objSheet->getStyleByColumnAndRow(3, 4)->getAlignment()->setWrapText(true);
+		$objSheet->setCellValueByColumnAndRow(4, 4, 'Комментарии участников');
+		$objSheet->getStyleByColumnAndRow(4, 4)->getAlignment()->setWrapText(true);
+		
+		// Добавить данные
+		// Количество участников
+		$objSheet->setCellValueByColumnAndRow(0, 5, $numTasters);
+		// Объединить первую и вторую строки столбца
+		$objSheet->mergeCellsByColumnAndRow( 0, 5, 0, 6);
+		// Наименование образцов
+		$objSheet->setCellValueByColumnAndRow(1, 5, 'Образец A: '.$strProductNameA);
+		$objSheet->getStyleByColumnAndRow(1, 5)->getAlignment()->setWrapText(true);
+		$objSheet->setCellValueByColumnAndRow(1, 6, 'Образец B: '.$strProductNameB);
+		$objSheet->getStyleByColumnAndRow(1, 6)->getAlignment()->setWrapText(true);
+		// Количество оценок образца
+		$objSheet->getCellByColumnAndRow(2, 5)->setValueExplicit($productAValue, PHPExcel_Cell_DataType::TYPE_NUMERIC);
+		$objSheet->getCellByColumnAndRow(2, 6)->setValueExplicit($productBValue, PHPExcel_Cell_DataType::TYPE_NUMERIC);
+		// Число требуемых правильных ответов
+		$objSheet->setCellValueByColumnAndRow(3, 6, $numCorrectAnswersB);
+		// Комментарии участников
+		$objSheet->setCellValueByColumnAndRow(4, 5, $comments);
+		$objSheet->mergeCellsByColumnAndRow( 4, 5, 4, 6);
+		
+		/*
+		 * Применить стиль ко всем ячейкам документа
+		 */
+		$styleArray = array(
+			'alignment' => array(
+				'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
+				'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER,
+			),
+			'borders' => array(
+				'allborders' => array(
+					'style' => PHPExcel_Style_Border::BORDER_THIN,
+				),
+			),
+		);
+		$objPHPExcel->setActiveSheetIndex(0)->getStyle('A4:E6')->applyFromArray($styleArray);
+		
+		// добавить список участников дегустации
+		$lastRow = 5;
+		$this->_printTasterList($objPHPExcel, $arrTasterList, $lastRow);
+		
+		return $objPHPExcel;
+	}
+	
+	/**
+	 *
+	 */
+	private function _printHeader($interviewId, $objPHPExcel)
+	{
+		$arrInterview = $this->getInterview($interviewId);
+		
+		$strInterviewName = $arrInterview['interview_name'];
+		$strInterviewDate = $arrInterview['interview_date'];
+		$EnterpriseId = $arrInterview['enterprise_id'];
+		$objEnterpriseManager = new EnterpriseManager($this->_objDB);
+		$strEnterpriseName = $objEnterpriseManager->getEnterpriseById($EnterpriseId)->name;
+		
+		$objSheet = $objPHPExcel->setActiveSheetIndex(0);
+		// Напечатать заголовок
+		$objSheet->setCellValue('A1', "Отчет по дегустационному листу: $strInterviewName от $strInterviewDate");
+		$objSheet->mergeCells( 'A1:E1');
+		$objSheet->setCellValue('A2', "Выпускающее предприятие: $strEnterpriseName");
+		$objSheet->mergeCells( 'A2:E2');
+	}
+	
+	/**
+	 * Добавляет список участников дегустации начиная со строки, номер которой
+	 * передан 3 параметром
+	 */
+	private function _printTasterList($objPHPExcel, $arrTasterList, $lastRow)
+	{
+		$lastRow += 2;
+		
+		$objSheet = $objPHPExcel->setActiveSheetIndex(0);
+		// Напечатать заголовок
+		$objSheet->setCellValueByColumnAndRow(1, $lastRow, 'Участники дегустации:');
+		$objSheet->mergeCellsByColumnAndRow( 1, $lastRow, 2, $lastRow);
+		$num = 1;
+		foreach($arrTasterList as $arrTaster)
+		{
+			$lastRow++;
+			$objSheet->setCellValueByColumnAndRow(1, $lastRow, $num . '. ' . $arrTaster['taster_surname'].' '.$arrTaster['taster_name']);
+			$objSheet->mergeCellsByColumnAndRow( 1, $lastRow, 2, $lastRow);
+			$num++;
+		}
 	}
 	
 	/**
@@ -576,7 +663,7 @@ TRIANG;
 	 * @return mixed: FALSE в случае отсутствия данных по переданному опросу, объект 
 	 *	PHPExcel содержащий таблицу отчет.
 	 */
-	private function buildComplxReport($interviewId)
+	private function buildComplxReport($interviewId, $arrTasterList)
 	{
 		$strQuery = "SELECT 
 						`answers`.`interview_product_id` AS `product_id`,
@@ -630,7 +717,7 @@ TRIANG;
 			
 			if ( isset($arrResults[0]) )
 			{
-				$objPHPExcel = $this->_getComplxReport($arrResults);
+				$objPHPExcel = $this->_getComplxReport($arrResults, $arrTasterList, $interviewId);
 			}
 			else 
 			{
@@ -693,7 +780,7 @@ TRIANG;
 	 * @param array: массив содержащий результат запроса к базе данных
 	 * @return object: объект PHPExcel содержащий таблицу отчета
 	 */
-	private function _getComplxReport($arrRes)
+	private function _getComplxReport($arrRes, $arrTasterList, $interviewId)
 	{
 		/*
 		 * Разбить исходный массив результатов на строки, содержащие 
@@ -741,11 +828,16 @@ TRIANG;
 			}
 		}
 		
-		
 		/*
 		 * Создать объект класса PHPExcel
 		 */
 		$objPHPExcel = new PHPExcel();
+		
+		
+		/*
+		 * Напечатать шапку отчета
+		 */
+		$this->_printHeader($interviewId, $objPHPExcel);
 		
 		/*
 		 * Вывести шапку таблицы отчета
@@ -753,23 +845,27 @@ TRIANG;
 		$this->_printComplxHeader($objPHPExcel);
 		
 		/*
+		 * Последняя заполненая строка - равна 2 + 3
+		 */
+		$lastRow = 5;
+		
+		/*
 		 * Вывести строки по каждому образцу 
 		 */
 		$productNum = 0;
 		foreach ($arrProducts as $arrProduct)
 		{
-			$this->_printComplxRowForProduct($objPHPExcel, $arrProduct, $productNum);
+			$lastRow += $this->_printComplxRowForProduct($objPHPExcel, $arrProduct, $productNum);
 			$productNum++;
 		}
 		
 		/*
-		 * Применить стиль ко всем ячейкам документа
+		 * Применить стиль ко всем ячейкам таблицы
 		 */
 		$styleArray = array(
 			'alignment' => array(
 				'horizontal' => PHPExcel_Style_Alignment::HORIZONTAL_CENTER,
 				'vertical' => PHPExcel_Style_Alignment::VERTICAL_CENTER,
-				'wrapText' => true
 			),
 			'borders' => array(
 				'allborders' => array(
@@ -777,20 +873,17 @@ TRIANG;
 				),
 			),
 		);
+		$objPHPExcel->setActiveSheetIndex(0)->getStyle('A4:S'.$lastRow)->applyFromArray($styleArray);
 		
-		//$objPHPExcel->getActiveSheet()->getStyleByColumnAndRow('A1:S12')->applyFromArray($styleArray);
-		
+		/*
+		 * Распечатать список участников дегустации
+		 */
+		$this->_printTasterList($objPHPExcel, $arrTasterList, $lastRow);
 		
 		/*
 		 * Вернуть сформированный документ
 		 */ 
 		return $objPHPExcel;
-		
-		/*
-		 * Сохранить файл
-		 */
-		$objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel5');
-		$objWriter->save(str_replace('.php', '.xls', __FILE__));
 	}
 	
 	/**
@@ -803,31 +896,58 @@ TRIANG;
 		// Установить свойства формируемого документа
 		$objPHPExcel->getProperties()->setCreator("АС ДКИ")
 									 ->setLastModifiedBy("АС ДКИ");
-		
+									 
+		$objSheet = $objPHPExcel->setActiveSheetIndex(0);
+		// Задать ширину столбцов
+		$objSheet->getColumnDimension('A')->setWidth(15);
+		$objSheet->getStyle('A')->getAlignment()->setWrapText(true);
+		$objSheet->getColumnDimension('B')->setWidth(11);
+		$objSheet->getStyle('B')->getAlignment()->setWrapText(true);
+		$objSheet->getColumnDimension('C')->setWidth(30);
+		$objSheet->getStyle('C')->getAlignment()->setWrapText(true);
+		$objSheet->getColumnDimension('D')->setWidth(11);
+		$objSheet->getStyle('D')->getAlignment()->setWrapText(true);
+		$objSheet->getColumnDimension('L')->setWidth(15);
+		$objSheet->getStyle('L')->getAlignment()->setWrapText(true);
+		$objSheet->getColumnDimension('M')->setWidth(15);
+		$objSheet->getStyle('M')->getAlignment()->setWrapText(true);
+		$objSheet->getColumnDimension('N')->setWidth(15);
+		$objSheet->getStyle('N')->getAlignment()->setWrapText(true);
+		$objSheet->getColumnDimension('O')->setWidth(15);
+		$objSheet->getStyle('O')->getAlignment()->setWrapText(true);
+		$objSheet->getColumnDimension('P')->setWidth(20);
+		$objSheet->getStyle('P')->getAlignment()->setWrapText(true);
+		$objSheet->getColumnDimension('Q')->setWidth(20);
+		$objSheet->getStyle('Q')->getAlignment()->setWrapText(true);
+		$objSheet->getColumnDimension('R')->setWidth(20);
+		$objSheet->getStyle('R')->getAlignment()->setWrapText(true);
+		$objSheet->getColumnDimension('S')->setWidth(30);
+		$objSheet->getStyle('S')->getAlignment()->setWrapText(true);
+		 
 		// Добавить заколовки столбцов
 		$objPHPExcel->setActiveSheetIndex(0)
-           ->setCellValueByColumnAndRow(0, 1, 'Наименование образца')
-			->setCellValueByColumnAndRow(1, 1, 'Номер показателя')
-			->setCellValueByColumnAndRow(2, 1, 'Наименование показателя')
-			->setCellValueByColumnAndRow(3, 1, 'Вес показателя')
+           ->setCellValueByColumnAndRow(0, 4, 'Наименование образца')
+			->setCellValueByColumnAndRow(1, 4, 'Номер показателя')
+			->setCellValueByColumnAndRow(2, 4, 'Наименование показателя')
+			->setCellValueByColumnAndRow(3, 4, 'Вес показателя')
 			// Объединить следующие 7 ячеек
-			->setCellValueByColumnAndRow(4, 1, 'Количество участников дегустации, поставивших оценки:')
-			->mergeCellsByColumnAndRow( 4, 1, 10, 1)
-			->setCellValueByColumnAndRow(4, 2, '1.0')
-			->setCellValueByColumnAndRow(5, 2, '2.0')
-			->setCellValueByColumnAndRow(6, 2, '3.0')
-			->setCellValueByColumnAndRow(7, 2, '4.0')
-			->setCellValueByColumnAndRow(8, 2, '5.0')
-			->setCellValueByColumnAndRow(9, 2, '6.0')
-			->setCellValueByColumnAndRow(10, 2, '7.0')
-			->setCellValueByColumnAndRow(11, 1, 'Итого, участников')
-			->setCellValueByColumnAndRow(12, 1, 'Средний бал')
-			->setCellValueByColumnAndRow(13, 1, 'Оценка с учетом весомости')
-			->setCellValueByColumnAndRow(14, 1, 'Общая оценка')
-			->setCellValueByColumnAndRow(15, 1, 'Доля участников давших минимальные оценки, %(1, 2, 3)')
-			->setCellValueByColumnAndRow(16, 1, 'Доля участников давших максимальные оценки, %(5, 6, 7)')
-			->setCellValueByColumnAndRow(17, 1, 'Доля участников давших оценки свыше 5 баллов, %(6, 7)')
-			->setCellValueByColumnAndRow(18, 1, 'Комментарии участников');
+			->setCellValueByColumnAndRow(4, 4, 'Количество участников дегустации, поставивших оценки:')
+			->mergeCellsByColumnAndRow( 4, 4, 10, 4)
+			->setCellValueByColumnAndRow(4, 5, '1.0')
+			->setCellValueByColumnAndRow(5, 5, '2.0')
+			->setCellValueByColumnAndRow(6, 5, '3.0')
+			->setCellValueByColumnAndRow(7, 5, '4.0')
+			->setCellValueByColumnAndRow(8, 5, '5.0')
+			->setCellValueByColumnAndRow(9, 5, '6.0')
+			->setCellValueByColumnAndRow(10, 5, '7.0')
+			->setCellValueByColumnAndRow(11, 4, 'Итого, участников')
+			->setCellValueByColumnAndRow(12, 4, 'Средний бал')
+			->setCellValueByColumnAndRow(13, 4, 'Оценка с учетом весомости')
+			->setCellValueByColumnAndRow(14, 4, 'Общая оценка')
+			->setCellValueByColumnAndRow(15, 4, 'Доля участников давших минимальные оценки, %(1, 2, 3)')
+			->setCellValueByColumnAndRow(16, 4, 'Доля участников давших максимальные оценки, %(5, 6, 7)')
+			->setCellValueByColumnAndRow(17, 4, 'Доля участников давших оценки свыше 5 баллов, %(6, 7)')
+			->setCellValueByColumnAndRow(18, 4, 'Комментарии участников');
 		
 		// объединить ячейки первой и второй строки
 		for ($i = 0; $i < 19; $i++)
@@ -836,7 +956,7 @@ TRIANG;
 			{
 				continue;
 			}
-			$objPHPExcel->setActiveSheetIndex(0)->mergeCellsByColumnAndRow( $i, 1, $i, 2);
+			$objPHPExcel->setActiveSheetIndex(0)->mergeCellsByColumnAndRow( $i, 4, $i, 5);
 		}
 	}
 	
@@ -883,6 +1003,7 @@ TRIANG;
 		 * Формируем строки начиная со второй, чтобы подсчитать суммарную оценку образца 
 		 */
 		$overallRating = 0;
+		// количество строк - 1
 		$i = 0;
 		$strLastRows = "";
 		foreach ($arrQuestions as $question)
@@ -922,6 +1043,9 @@ TRIANG;
 		$overallRating += $average * $question['question_rate'];
 		//выводим 1 вопрос, название образца и суммарный балл
 		$this->_printComplxFirstRow($objPHPExcel,$arrProduct['product_name'], $question, $productNum, $i, $overallRating);
+		
+		// вернуть количество добавленых строк
+		return $i;
 	}
 	
 	/**
@@ -943,7 +1067,7 @@ TRIANG;
 		/*
 		 * Вычислить номер строки в которую необходимо записать данные
 		 */
-		$rowNum = $amountQuest * $productNum + $questNum + HEADERH_HEIGHT;
+		$rowNum = $amountQuest * $productNum + $questNum + HEADERH_HEIGHT + 3;
 		
 		$objPHPExcel->setActiveSheetIndex(0)
 			// номер показателя (вопроса)
@@ -993,7 +1117,7 @@ TRIANG;
 		/*
 		 * Вычислить номер строки в которую необходимо записать данные
 		 */
-		$rowNum = $amountQuest * $productNum + 1 + HEADERH_HEIGHT;
+		$rowNum = $amountQuest * $productNum + 1 + HEADERH_HEIGHT + 3;
 		
 		$objPHPExcel->setActiveSheetIndex(0)
 			// название образца
