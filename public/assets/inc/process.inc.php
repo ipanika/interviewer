@@ -21,7 +21,7 @@ foreach ( $C as $name => $val )
 /*
  * Определить функцию автозагрузки определения классов
  */
-function myAutoload($strClassName)
+function __autoload($strClassName)
 {
 	$strFileName = '../../../sys/class/class.'
 			.strtolower($strClassName).'.inc.php';
@@ -30,9 +30,6 @@ function myAutoload($strClassName)
 		include_once $strFileName;
 	}
 }
-
-// регистрируем собственную функцию автозагрузки во избежание пересечений
-spl_autoload_register('myAutoload');
 
 /*
  * Создать поисковый массив для действий, выполняемых над формой

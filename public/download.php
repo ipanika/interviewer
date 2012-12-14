@@ -1,9 +1,9 @@
 <?php
 
+include_once '../sys/core/init.inc.php';
+
 /** Include PHPExcel */
 require_once '../sys/class/PHPExcel/PHPExcel.php';
-
-include_once '../sys/core/init.inc.php';
 
 $objExportReport = new ExportReport($objDB);
 

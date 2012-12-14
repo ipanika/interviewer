@@ -779,7 +779,6 @@ TRIANGLE;
 	 */
 	public function displayInterviewForm()
 	{
-		print_r($_SESSION);
 		//добавить шапку (название и вид дегустационного листа)
 		$strHeader = $this->_getHeader();
 		//добавить блок вопросов (новый или существующий)
