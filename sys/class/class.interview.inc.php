@@ -1024,6 +1024,9 @@ CMD_SAVE;
 			{
 				return $e->getMessage();
 			}
+			
+			$this->processEndEdit();
+			
 			return TRUE;
 		}
 		//проверяем создавался новый блок вопросов или использовался существующий
