@@ -1518,7 +1518,7 @@ REP;
 					->mergeCells('B4:B5')
 					->mergeCells('C4:C5')
 					->mergeCells('D4:J5')
-					->mergeCells('K4:Q5')
+					->mergeCells('K4:Q4')
 					->mergeCells('R4:R5')
 					->mergeCells('S4:S5')
 					->mergeCells('T4:T5')
