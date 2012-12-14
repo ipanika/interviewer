@@ -134,6 +134,11 @@ EXPORTFORM;
 				break;
 		}
 		
+		if ($strReport == "По данному опросу нет данных")
+		{
+			return $strHeader . $strReport ;
+		}
+		
 		return $strHeader . $strReport . $strTasterList . $strExportForm;
 	}
 	
