@@ -216,6 +216,29 @@ NEW_QUESTION_BUTTON;
 		//получаем вопрос из сеанса
 		$objQuestion = $_SESSION['edited_interview']['cluster']['questions'][$id];
 		
+		if ( $_SESSION['edited_interview']['interview_type'] == M_CONSUM )
+		{
+			//создаем разметку для вывода вариантов ответа
+			$strOptionList = "";
+			if ($objQuestion->type == Q_OPEN )
+			{
+				$strOptionList = "Открытый вопрос<br>";
+			}
+			else
+			{
+				$arrOptions = $objQuestion->arrResponseOptions;
+				for ($i = 0; $i < NUM_OF_OPTIONS; $i++)
+				{
+					$num = $i + 1;
+					$option = $arrOptions[$i];
+					$strOptionList .=<<<OPTION_LIST
+					<label>$num</label>
+					<label>$option->text</label>
+OPTION_LIST;
+				}
+			}
+		}
+		
 		if ( $_SESSION['edited_interview']['interview_type'] == M_PROFIL )
 		{
 			//создаем разметку для вывода вариантов ответа
