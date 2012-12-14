@@ -159,7 +159,14 @@ EXPORTFORM;
 							`answers`.`interview_product_id` AS `product_id`,
 							`responseOption_num`,
 							`product_name`,
-							GROUP_CONCAT(`comment`) AS `comments`,
+							GROUP_CONCAT(
+							(CASE 
+								WHEN NOT `answers`.`comment` = '' THEN CONCAT(`answers`.`comment`, '-',
+									`tasters`.`taster_surname`, ' ',
+									`tasters`.`taster_name`)
+								END
+							)
+							SEPARATOR '<br>') AS `comments`,
 							COUNT(*) AS `amount_taster`
 					FROM `answers`
 						LEFT JOIN `questions` 
@@ -170,6 +177,8 @@ EXPORTFORM;
 							ON `products`.`product_id` = `interview_product`.`product_id`
 						LEFT JOIN `responseoptions` 
 							ON `responseoptions`.`responseoption_id` = `answers`.`responseoption_id`
+						LEFT JOIN `tasters`
+							ON `tasters`.`taster_id` = `answers`.`taster_id`
 					WHERE 
 							`interview_product`.`interview_id` = $interviewId
 					GROUP BY 
@@ -505,17 +514,34 @@ PRODUCT_RES;
 	private function buildTriangReport($interviewId)
 	{
 		$strQuery = "SELECT
-						COUNT(`trianganswers`.`product_id`) AS `count_value`,
+						COUNT(*) AS `count_value`,
+						`t_prod`.`product_id`,
 						`products`.`product_name`,
-						GROUP_CONCAT(`trianganswers`.`comment` SEPARATOR '<br>') AS `comment`
-					FROM `interview_product`
+						GROUP_CONCAT(
+							(CASE
+								WHEN `trianganswers`.`comment` IS NOT NULL
+									THEN CONCAT(`trianganswers`.`comment`, '-',`tasters`.`taster_surname`, ' ',`tasters`.`taster_name`)
+								END
+							)
+							SEPARATOR '<br>') AS `comment`
+					FROM
+						(SELECT
+							`product_id`,
+							`interview_product_id` AS `t_prod_id`
+						FROM `interview_product`
+						WHERE `interview_id` = $interviewId
+						) AS `t_prod`
 					LEFT JOIN `products`
-						ON `products`.`product_id` = `interview_product`.`product_id`
+						ON `products`.`product_id` = `t_prod`.`product_id`
 					LEFT JOIN `trianganswers`
-						ON `trianganswers`.`product_id` = `interview_product`.`product_id` AND 
-								`trianganswers`.`interview_id` = `interview_product`.`interview_id`
-					WHERE `interview_product`.`interview_id` = $interviewId 
-					GROUP BY `trianganswers`.`product_id`";
+						ON `trianganswers`.`product_id` = `t_prod`.`product_id`
+					LEFT JOIN `tasters`
+						ON `tasters`.`taster_id` = `trianganswers`.`taster_id`
+					WHERE `trianganswers`.`interview_id` = $interviewId
+
+					GROUP BY `t_prod`.`product_id`
+					ORDER BY `t_prod`.`t_prod_id`";
+	
 		try
 		{
 			$stmt = $this->_objDB->prepare($strQuery);
@@ -538,7 +564,7 @@ PRODUCT_RES;
 		$productAValue = $arrResults[0]['count_value'];
 		$productBValue = $arrResults[1]['count_value'];
 		$numTasters = $arrResults[0]['count_value'] + $arrResults[1]['count_value'];
-		$comments = $arrResults[0]['comment'] . $arrResults[1]['comment'];
+		$comments = $arrResults[0]['comment'] . '<br>' . $arrResults[1]['comment'];
 		
 		$numCorrectAnswersA = "";
 		$numCorrectAnswersB = "";
@@ -595,15 +621,9 @@ TRIANG;
 						`questions`.`question_id`,
 						`questions`.`question_text`,
 						`questions`.`question_rate`,
-						CASE 
-							WHEN `answers`.`comment` IS NOT NULL THEN CONCAT(`answers`.`comment`, '-',
-									`tasters`.`taster_surname`, ' ',
-									`tasters`.`taster_name`)
-						END AS cm,
-						
 						GROUP_CONCAT(
 							(CASE 
-								WHEN NOT `answers`.`comment` = '' THEN CONCAT(`answers`.`comment`, '-',
+								WHEN `answers`.`comment` IS NOT NULL THEN CONCAT(`answers`.`comment`, '-',
 									`tasters`.`taster_surname`, ' ',
 									`tasters`.`taster_name`)
 								END
@@ -958,7 +978,16 @@ PRODUCT_RES;
 						`questions`.`question_id`,
 						`questions`.`question_text`,
 						`questions`.`question_rate`,
-						GROUP_CONCAT(`answers`.`comment` SEPARATOR '<br>') AS `comment`
+						
+						GROUP_CONCAT(
+							(CASE 
+								WHEN `answers`.`comment` IS NOT NULL
+									THEN CONCAT(`answers`.`comment`, '-',
+									`tasters`.`taster_surname`, ' ',
+									`tasters`.`taster_name`)
+								END
+							)
+							SEPARATOR '<br>') AS `comment`
 					FROM `answers`
 					LEFT JOIN `interview_product` 
 						ON `interview_product`.`interview_product_id` = `answers`.`interview_product_id`
@@ -968,6 +997,8 @@ PRODUCT_RES;
 						ON `responseoptions`.`responseOption_id` = `answers`.`responseOption_id`
 					LEFT JOIN `questions`
 						ON `questions`.`question_id` = `responseoptions`.`question_id`
+					LEFT JOIN `tasters`
+						ON `tasters`.`taster_id` = `answers`.`taster_id`
 					WHERE `interview_product`.`interview_id` = $interviewId
 					GROUP BY 
 						`answers`.`interview_product_id`, 
