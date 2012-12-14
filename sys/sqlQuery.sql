@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS `interviewer`.`interviews` (
 	`interview_type`	INT(1),
 	`cluster_id`		INT(11),
     `enterprise_id`		INT(11),
-	`interview_date`	DATETIME,
+	`interview_date`	DATE,
 	
 	PRIMARY KEY (`interview_id`),
 	FOREIGN KEY (`cluster_id`) REFERENCES clusters(`cluster_id`),
