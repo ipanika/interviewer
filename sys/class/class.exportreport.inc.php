@@ -97,11 +97,6 @@ class ExportReport extends DB_Connect
 		$EnterpriseId = $arrInterview['enterprise_id'];
 		$objEnterpriseManager = new EnterpriseManager($this->_objDB);
 		$strEnterpriseName = $objEnterpriseManager->getEnterpriseById($EnterpriseId)->name;
-		/*
-		 * Задать шапку отчета
-		 */
-		/* $strHeader ="<label>Отчет по дегустационному листу: $strInterviewName от $strInterviewDate</label>
-					<label>Выпускающее предприятие: $strEnterpriseName</label><br>"; */
 		
 		/*
 		 * Получить список участников дегустации
@@ -111,7 +106,7 @@ class ExportReport extends DB_Connect
 		switch($interviewType)
 		{
 			case M_PROFIL:
-				return $strHeader . $this->buildProfilReport($interviewId) . $strTasterList;
+				$objPHPExcel = $this->exportProfilReport($interviewId, $arrTasterList);
 				break;
 			case M_COMPLX:
 				$objPHPExcel = $this->buildComplxReport($interviewId, $arrTasterList);
@@ -1303,12 +1298,12 @@ REP;
 	/**
 	 * Выводит строку таблицы полностью описывающюю данный продукт
 	 */
-	private function _printProfilRowForProduct($arrProduct)
+	/* private function _printProfilRowForProduct($arrProduct)
 	{
 		/*
 		 * Группируем данные по вопросам к данному образцу
 		 */
-		$arrQuestions = array();
+	/* 	$arrQuestions = array();
 		$curQuestionId = 0;
 		$j = 1;
 		$i = 0;
@@ -1338,11 +1333,11 @@ REP;
 				$arrQuestions[$i]['comment'] .= '<br>' . $option['comment'];
 			}
 		}
-		
+ */		
 		/*
 		 * Формируем строки начиная со второй, чтобы подсчитать суммарную оценку образца 
 		 */
-		$overallRating = 0;
+/* 		$overallRating = 0;
 		$i = 0;
 		$strLastRows = "";
 		foreach ($arrQuestions as $question)
@@ -1384,7 +1379,7 @@ REP;
 		$strFirstRow = $this->_printProfilFirstRow($arrProduct['product_name'], $question, $i, $overallRating);
 		
 		return $strFirstRow . $strLastRows;
-	}
+	} */ 
 	
 	/**
 	 * Возвращает строку HTML-таблицы
@@ -1392,7 +1387,7 @@ REP;
 	 * @param array: массив данных для заполнения полей строки
 	 * @return string: HTML-строка
 	 */
-	private function _printProfilRow($arrRow)
+	/* private function _printProfilRow($arrRow)
 	{
 		$scores = $arrRow['scores'];
 		return <<<PRODUCT_RES
@@ -1412,7 +1407,7 @@ REP;
 				<td>$arrRow[comment]</td>
 			</tr>
 PRODUCT_RES;
-	}
+	} */
 	
 	/**
 	 * Возвращает строку HTML-таблицы
@@ -1420,7 +1415,7 @@ PRODUCT_RES;
 	 * @param array: массив данных для заполнения полей строки
 	 * @return string: HTML-строка
 	 */
-	private function _printProfilFirstRow($strProductName, $arrRow, $numQuest, $overallRating)
+	/* private function _printProfilFirstRow($strProductName, $arrRow, $numQuest, $overallRating)
 	{
 		$scores = $arrRow['scores'];
 		return <<<PRODUCT_RES
@@ -1441,7 +1436,7 @@ PRODUCT_RES;
 				<td>$arrRow[comment]</td>
 			</tr>
 PRODUCT_RES;
-	}
+	} */
 	
 	/**
 	 * Возвращает список учасников дегустации
@@ -1499,6 +1494,366 @@ PRODUCT_RES;
 			die ( $e->getMessage() );
 		}
 		
+	}
+	
+	/**
+	 * Формирует excel-отчет по опросу, сформированному по профильному методу
+	 *
+	 * @param int: идентификатор опроса в базе данных
+	 * @return object: объект PHPExcel с сформированной таблицей-отчетом
+	 */
+	public function exportProfilReport($interviewId, $arrTasterList)
+	{
+		$strQuery = "SELECT 
+						`answers`.`interview_product_id` AS `product_id`,
+						`products`.`product_name`,
+						`answers`.`responseOption_id`,
+						COUNT(*) AS amount_taster,
+						`responseoptions`.`responseOption_num`,
+						`questions`.`question_id`,
+						`questions`.`question_text`,
+						`questions`.`question_rate`,
+						GROUP_CONCAT(`answers`.`comment` SEPARATOR '<br>') AS `comment`
+					FROM `answers`
+					LEFT JOIN `interview_product` 
+						ON `interview_product`.`interview_product_id` = `answers`.`interview_product_id`
+					LEFT JOIN `products`
+						ON `products`.`product_id` = `interview_product`.`product_id`
+					LEFT JOIN `responseoptions` 
+						ON `responseoptions`.`responseOption_id` = `answers`.`responseOption_id`
+					LEFT JOIN `questions`
+						ON `questions`.`question_id` = `responseoptions`.`question_id`
+					WHERE `interview_product`.`interview_id` = $interviewId
+					GROUP BY 
+						`answers`.`interview_product_id`, 
+						`answers`.`responseOption_id`
+					ORDER BY 
+						`answers`.`interview_product_id`, 
+						`questions`.`question_id`, 
+						`responseoptions`.`responseOption_num`";
+		
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+			
+			if ( isset($arrResults[0]) )
+			{
+				$objPHPExcel = $this->_getProfilExcelReport($arrResults, $arrTasterList, $interviewId);
+				
+				return $objPHPExcel;
+			}
+			else 
+			{
+				echo "По данному опросу нет данных";
+			}
+		}
+		catch ( Exception $e )
+		{
+			die ( $e->getMessage() );
+		}
+	}
+	
+	/**
+	 * Возвращает excel-файл отчета о проведенном опросе
+	 *
+	 * @param array: массив содержащий результат запроса к базе данных
+	 * @return obj: объект PHPExcel со сформированной таблицей
+	 */
+	private function _getProfilExcelReport($arrRes, $arrTasterList, $interviewId)
+	{
+		/*
+		 * Разбить исходный массив результатов на строки, содержащие 
+		 * результаты по конкретному показателю для конкретного образца
+		 */
+		
+		/*
+		 * Сгруппировать все данные по образцам продукции
+		 */
+		$arrProducts = array();
+		$curProductId = 0;
+		foreach($arrRes as $elem)
+		{
+			if ($curProductId != $elem['product_id'])
+			{
+				$curProductId = $elem['product_id'];
+				$arrProducts[$curProductId] = array();
+				$arrProducts[$curProductId]['product_name'] = $elem['product_name'];
+				//вариант ответа для данного продукта
+				$responseOption = array(
+					'responseOption_id' => $elem['responseOption_id'],
+					'amount_taster' => $elem['amount_taster'],
+					'responseOption_num' => $elem['responseOption_num'],
+					'question_id' => $elem['question_id'],
+					'question_text' => $elem['question_text'],
+					'question_rate' => $elem['question_rate'],
+					'comment' => $elem['comment']
+				);
+				$arrProducts[$curProductId]['responseOptions'] = array();
+				$arrProducts[$curProductId]['responseOptions'][] = $responseOption;
+			}
+			else
+			{
+				//вариант ответа для данного продукта
+				$responseOption = array(
+					'responseOption_id' => $elem['responseOption_id'],
+					'amount_taster' => $elem['amount_taster'],
+					'responseOption_num' => $elem['responseOption_num'],
+					'question_id' => $elem['question_id'],
+					'question_text' => $elem['question_text'],
+					'question_rate' => $elem['question_rate'],
+					'comment' => $elem['comment']
+				);
+				$arrProducts[$curProductId]['responseOptions'][] = $responseOption;
+			}
+		}
+		
+		$objPHPExcel = new PHPExcel();
+		
+		/*
+		 * Напечатать шапку отчета
+		 * Шапка занимает первые две строки 
+		 */
+		$this->_printHeader($interviewId, $objPHPExcel);
+		
+		$activeSheet = $objPHPExcel->getActiveSheet();
+		
+		//установка высоты шапки таблицы
+		//$activeSheet->getRowDimension(1)->setRowHeight(90);
+		//горизонтальная ориентация
+		$activeSheet->getPageSetup()->setOrientation(PHPExcel_Worksheet_PageSetup::ORIENTATION_LANDSCAPE);
+		//локализация
+		$validLocale = PHPExcel_Settings::setLocale('ru_ru');
+		//объединение ячеек
+		$activeSheet->mergeCells('A4:A5')
+					->mergeCells('B4:B5')
+					->mergeCells('C4:C5')
+					->mergeCells('D4:D5')
+					->mergeCells('E4:K5')
+					->mergeCells('D4:D5')
+					->mergeCells('L4:L5')
+					->mergeCells('M4:M5')
+					->mergeCells('N4:N5')
+					;
+		//заполнение ячеек
+		$activeSheet->setCellValue('A4', 'Наименование продукции')
+					->setCellValue('B4', '№ показателя')
+					->setCellValue('C4', 'Наименование показателя')
+					->setCellValue('D4', 'Вес показателя')
+					->setCellValue('E4', 'Количество участников, поставивших оценки')
+					->setCellValue('L4', 'Итого, участников')
+					->setCellValue('M4', 'Средний балл')
+					->setCellValue('N4', 'Комментарии участников')
+					->setCellValue('E5', '1')
+					->setCellValue('F5', '2')
+					->setCellValue('G5', '3')
+					->setCellValue('H5', '4')
+					->setCellValue('I5', '5')
+					->setCellValue('J5', '6')
+					->setCellValue('K5', '7')
+					;
+				
+		$activeSheet->getColumnDimension('A')->setWidth(15.57);
+		$activeSheet->getColumnDimension('B')->setWidth(15);
+		$activeSheet->getColumnDimension('C')->setWidth(15.5);
+		$activeSheet->getColumnDimension('D')->setWidth(15.5);
+		$activeSheet->getColumnDimension('E')->setWidth(3.57);
+		$activeSheet->getColumnDimension('F')->setWidth(3.57);
+		$activeSheet->getColumnDimension('G')->setWidth(3.57);
+		$activeSheet->getColumnDimension('H')->setWidth(3.57);
+		$activeSheet->getColumnDimension('I')->setWidth(3.57);
+		$activeSheet->getColumnDimension('J')->setWidth(3.57);
+		$activeSheet->getColumnDimension('K')->setWidth(3.57);
+		$activeSheet->getColumnDimension('L')->setWidth(12);
+		$activeSheet->getColumnDimension('M')->setWidth(10.57);
+		$activeSheet->getColumnDimension('N')->setWidth(24.29); 
+		
+		//номер последней используемой строки
+		$previousRow = 5;
+		
+		/*
+		 * Добавить строки таблицы для каждого образца
+		 */
+		foreach($arrProducts as $arrProduct)
+		{
+			$this->_printProfilRowForProduct($arrProduct, $previousRow, $objPHPExcel);
+		} 
+		
+		//рамка вокруг ячеек
+		$styleArray = array(
+		  'borders' => array(
+			'allborders' => array(
+			  'style' => PHPExcel_Style_Border::BORDER_THIN
+			)
+		  )
+		);
+	
+		$activeSheet->getStyle("A4:N".$previousRow)->applyFromArray($styleArray);
+		unset($styleArray);
+		//перенос текста со словами
+		$activeSheet->getStyle("A4:N".$previousRow)->getAlignment()->setWrapText(true);
+				
+		$activeSheet->getStyle("A4:N".$previousRow)->getAlignment()->setHorizontal(PHPExcel_Style_Alignment::HORIZONTAL_CENTER);
+		$activeSheet->getStyle("A4:N".$previousRow)->getAlignment()->setVertical(PHPExcel_Style_Alignment::VERTICAL_CENTER);
+		
+		/*
+		 * Напечатать список участников
+		 */
+		$this->_printTasterList($objPHPExcel, $arrTasterList, $previousRow);
+
+		return $objPHPExcel;
+	}
+	
+	/**
+	 * Выводит строку таблицы полностью описывающюю данный продукт
+	 */
+	private function _printProfilRowForProduct($arrProduct, &$previousRow, $objPHPExcel)
+	{
+		/*
+		 * Группируем данные по вопросам к данному образцу
+		 */
+		$arrQuestions = array();
+		$curQuestionId = 0;
+		$j = 1;
+		$i = 0;
+		foreach($arrProduct['responseOptions'] as $option)
+		{
+			if ( $curQuestionId != $option['question_id'] )
+			{
+				$i++;
+				$curQuestionId = $option['question_id'];
+				$arrQuestions[$i] = array();
+				$arrQuestions[$i]['question_text'] = $option['question_text'];
+				$arrQuestions[$i]['question_rate'] = $option['question_rate'];
+				$arrQuestions[$i]['question_num'] = $j++;
+				$arrQuestions[$i]['scores'] = array(1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0, 6 => 0, 7 => 0);
+				$arrQuestions[$i]['comment'] = $option['comment'];
+				//количество участников 
+				$arrQuestions[$i]['numOfTasters'] = $option['amount_taster'];
+				//количество участников давших текущую оценку
+				$arrQuestions[$i]['scores'][$option['responseOption_num']] = $option['amount_taster'];
+			}
+			else
+			{
+				//количество участников 
+				$arrQuestions[$i]['numOfTasters'] += $option['amount_taster'];
+				//количество участников давших текущую оценку
+				$arrQuestions[$i]['scores'][$option['responseOption_num']] = $option['amount_taster'];
+				$arrQuestions[$i]['comment'] .= '<br>' . $option['comment'];
+			}
+		}
+		
+		/*
+		 * Формируем строки начиная со второй, чтобы подсчитать суммарную оценку образца 
+		 */
+		 
+		$overallRating = 0; 
+		 //выводим первую строку
+		$question = $arrQuestions[1];
+		$question['question_num'] = 1;
+		// Подсчитать среднюю оценку по показателю
+		$average = 0;
+		for ($j = 0; $j < NUM_OF_OPTIONS; $j++)
+		{
+			$average += ($j+1) * $question['scores'][($j+1)];
+		}
+		$average = round($average / $question['numOfTasters'], 2);
+		$question['average'] = $average;
+		//подсчитываем оценку с учетом веса
+		$question['averToRate'] = $average * $question['question_rate'];
+		$overallRating += $average * $question['question_rate'];
+		//выводим 1 вопрос, название образца и суммарный балл
+		$this->_printProfilFirstRow($arrProduct['product_name'], $question, $i, $overallRating, $previousRow, $objPHPExcel);
+				
+		$overallRating = 0;
+		$i = 0;
+		foreach ($arrQuestions as $question)
+		{
+			if ( $i != 0 )
+			{
+				// Подсчитать среднюю оценку по показателю
+				$average = 0;
+				for ($j = 0; $j < NUM_OF_OPTIONS; $j++)
+				{
+					$average += ($j+1) * $question['scores'][($j+1)];
+				}
+				$average = round($average / $question['numOfTasters'], 2);
+				$question['average'] = $average;
+				//подсчитываем оценку с учетом веса
+				$question['averToRate'] = $average * $question['question_rate'];
+				$overallRating += $average * $question['question_rate'];
+				//выводим данный вопрос
+				$this->_printProfilRow($question, $previousRow, $objPHPExcel);
+				//$previousRow++;
+			}
+			$i++;
+		}
+	}
+	
+	/**
+	 * Возвращает строку HTML-таблицы
+	 *
+	 * @param array: массив данных для заполнения полей строки
+	 * @return string: HTML-строка
+	 */
+	private function _printProfilRow($arrRow, &$previousRow, $objPHPExcel)
+	{
+		//если название продукции уже напечатано, то печатаем с 1 столбца
+		$i = 1;
+		$previousRow += 1;
+		
+		$scores = $arrRow['scores'];
+		$activeSheet = $objPHPExcel->getActiveSheet();
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$arrRow['question_num']); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$arrRow['question_text']); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$arrRow['question_rate']); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$scores[1]); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$scores[2]); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$scores[3]); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$scores[4]); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$scores[5]); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$scores[6]); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$scores[7]); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$arrRow['numOfTasters']); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$arrRow['average']); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$arrRow['comment']); $i += 1;
+	}
+	
+	/**
+	 * Возвращает строку HTML-таблицы
+	 *
+	 * @param array: массив данных для заполнения полей строки
+	 * @return string: HTML-строка
+	 */
+	private function _printProfilFirstRow($strProductName, $arrRow, $numQuest, $overallRating, &$previousRow, $objPHPExcel)
+	{
+		//если необходимо напечатать название продукции, то печатаем с 0 столбца
+		$i = 0;
+		$previousRow += 1;
+		$scores = $arrRow['scores'];
+		//объединение ячеек под название продукции
+		$merge_from = $previousRow;
+		$merge_to = $merge_from + $numQuest - 1;
+		$activeSheet = $objPHPExcel->getActiveSheet();
+		
+		$activeSheet->mergeCells("A$merge_from:A$merge_to");
+		
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$strProductName); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$arrRow['question_num']); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$arrRow['question_text']); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$arrRow['question_rate']); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$scores[1]); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$scores[2]); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$scores[3]); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$scores[4]); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$scores[5]); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$scores[6]); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$scores[7]); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$arrRow['numOfTasters']); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$arrRow['average']); $i += 1;
+		$activeSheet->setCellValueByColumnAndRow($i,$previousRow,$arrRow['comment']); $i += 1;
 	}
 }
 ?>
