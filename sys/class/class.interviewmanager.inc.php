@@ -123,8 +123,7 @@ class InterviewManager extends DB_Connect
 						$exist[$i] = TRUE;
 					}
 				}
-				foreach($arrResults as $elem)
-				{
+				
 					if (!$exist[$i])
 					{
 						$strQuery = "DELETE FROM `interviews` WHERE `interview_id` = ".$_POST['interview_id_form'][$i];
@@ -146,7 +145,7 @@ class InterviewManager extends DB_Connect
 					{	
 						$strRes = "Удаление невозможно - по дегустационному листу уже есть данные";
 					}
-				}
+				
 			}
 		}
 		catch ( Exception $e )

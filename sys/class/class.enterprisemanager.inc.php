@@ -257,8 +257,7 @@ PRODUCT_GROUP_FORM;
 					}
 				}
 				
-				foreach($arrResults as $elem)
-				{
+				
 					if (!$exist[$i])
 					{
 						$strQuery = "DELETE FROM `products` WHERE `enterprise_id` = ".$_POST['enterprise_id_form'][$i];
@@ -282,7 +281,7 @@ PRODUCT_GROUP_FORM;
 					{	
 						$strRes = "Удаление невозможно - предприятие уже используется в опросе";
 					}
-				}
+			
 			}
 		}
 		catch ( Exception $e )
