@@ -41,6 +41,7 @@ $objInterview = new Interview($objDB);
 	<label>Текущий опрос:</label>
 	<?php echo $objInterview->displayCurInterview()?>
 	
+	<a href="reportProducts.php" class="button">Экспорт списка образцов</a> <br>
 	<a href="editInterview.php" class="button">Создать новый дегустационный лист</a>
 	<a href="changeCurInterview.php" class="button">Сменить текущий дегустационный лист</a>
 	<a href="report.php" class="button">Отчеты по проведенным опросам</a><br>

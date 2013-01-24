@@ -122,6 +122,70 @@ class ExportReport extends DB_Connect
 		return $objPHPExcel;
 	}	
 	
+	/*
+	* Функция экспорта списка продуктов, участвующих в текущем опросе
+	*/
+	public function getCurrentProducts()
+	{
+		
+		/*
+		 * Вернуть пустую строку, если идентификатор опроса не передан
+		 */
+		/*if (!isset($_SESSION['report']['interview_id']) )
+		{
+			return TRUE;
+		}*/
+		
+		/*
+		 * Получить идентификатор опроса
+		 */
+		$interviewId = $_SESSION['report']['interview_id'];
+		
+		$strQuery = "SELECT `product_name` 
+			FROM `products` 
+					WHERE `product_id` IN 
+						(SELECT `product_id` 
+							FROM `interview_product` 
+								WHERE `interview_id` = 
+										(SELECT `interview_id`
+											FROM `current_interviews` 
+												WHERE `current_interview_date` = 
+												(SELECT MAX(`current_interview_date`) 
+													FROM `current_interviews`)))";
+													
+		/*
+		$strQuery = "SELECT `product_name` 
+			FROM `products` 
+					WHERE `product_id` IN  
+						(SELECT `product_id` 
+							FROM `interview_product` 
+								WHERE `interview_id` = $interviewId)";
+		*/
+			
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			$stmt->execute();
+			$arrResults = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+		
+			
+			if ( isset($arrResults[0]) )
+			{
+				return $arrResults;
+			}
+			else 
+			{
+				echo "В данном опросе не указаны образцы";
+			}
+		}
+		catch ( Exception $e )
+		{
+			die ( $e->getMessage() );
+		}
+		
+		
+	}
 	/**
 	 * Формирует таблицу отчет по опросу сформированному по методу треугольника
 	 *

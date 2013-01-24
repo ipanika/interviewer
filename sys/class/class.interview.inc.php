@@ -39,6 +39,23 @@ class Interview extends DB_Connect
 		}
 	}
 	
+	
+	
+	/*
+	* Завершает опрос записью  данных,хранящихся в SESSION, в БД
+	*/
+	public function finishInterview()
+	{
+		
+		//сохраняем ответы в БД в зависимости от метода опроса
+		$this->saveResults();
+		
+		//завершаем сессию
+		session_destroy();
+		
+		header("Location:index.php");
+				
+	}
 	/**
 	 * Возвращает HTML-разметку для отображения блока вопросов.
 	 *
@@ -55,13 +72,14 @@ class Interview extends DB_Connect
 		{
 			if ( isset($_SESSION['end']) )
 			{
+				
 				//возвращаем разметку с благодарностью и кнопкой закончить опрос
 				//завершаем сессию
-				session_destroy();
 				return <<<GOOD_BYE
 				<form action="assets/inc/process.inc.php" method="post">
-				
-					<input type="submit" value="Закончить опрос" />
+					<input type="hidden" name="action" value="write_cluster" />
+					<input type="hidden" name="token" value="$_SESSION[token]" />
+					<input type="submit" name="finish_interview" value="Закончить опрос" />
 				</form>
 GOOD_BYE;
 			}
@@ -79,14 +97,16 @@ GOOD_BYE;
 			$arrProduct = $this->_nextProduct($idProd);
 			
 			if ( empty($arrProduct) )
-			{
+			{				
 				//возвращаем разметку с благодарностью и кнопкой закончить опрос
-				//завершаем сессию
-				session_destroy();
+				$_SESSION['product_id'] += 1;
+				
 				return <<<GOOD_BYE
 				<form action="assets/inc/process.inc.php" method="post">
-				
-					<input type="submit" value="Закончить опрос" />
+					<input type="hidden" name="action" value="write_cluster" />
+					<input type="hidden" name="token" value="$_SESSION[token]" />
+					<input type="submit" name="cluster_submit_previous" value="Назад" class="previousCluster"/>
+					<input type="submit" name="finish_interview" value="Закончить опрос" />
 				</form>
 GOOD_BYE;
 			}
@@ -115,10 +135,184 @@ GOOD_BYE;
 		<label>$strTasterName</label>
 		<input type="hidden" name="action" value="write_cluster" />
 		<input type="hidden" name="token" value="$_SESSION[token]" />
+		<input type="submit" name="cluster_submit_previous" value="Назад" class="previousCluster"/>
 		<input type="submit" name="cluster_submit" value="Далее" class="nextCluster"/>
 	</form>
 FORM_MARKUP;
 		}	
+	}
+	
+	/**
+	 * Возвращает HTML-разметку для отображения предыдущего блока вопросов.
+	 *
+	 * @return string: HTML-разметка
+	 */
+	public function previousCluster()
+	{
+		/*
+		 * Получаем имя и фамилию дегустатора и текущую дату
+		 */
+		
+		$strTasterName = $this->_curTasterName();
+	
+		{
+			/*
+			 * Определяем есть ли еще блоки вопросов в дегустационном листе
+			 */
+			//для этого определяем текущий продукт
+			$idProd = isset($_SESSION['product_id']) ? $_SESSION['product_id'] : NULL;
+			$arrProduct = $this->_previousProduct($idProd);
+			
+			if ( empty($arrProduct) )
+			{
+				header("Location:index.php");
+				//возвращаем разметку с благодарностью и кнопкой закончить опрос
+				//завершаем сессию
+				/*session_destroy();
+				return <<<GOOD_BYE
+				<form action="assets/inc/process.inc.php" method="post">
+				
+					<input type="submit" value="Закончить опрос" />
+				</form>
+GOOD_BYE;*/
+			}
+			//сохраняем следующий продукт как текущий
+			
+			$_SESSION['product_id'] = $arrProduct['product_id'];
+			
+			$strCluster = "";
+			switch ($this->_type)
+			{
+				case M_PROFIL:
+					$strCluster = $this->_getClusterProfil();
+					break;
+				case M_COMPLX:
+					$strCluster = $this->_getClusterComplex();
+					break;
+				case M_CONSUM:
+					$strCluster = $this->_getClusterConsum();
+					break;
+			} 
+			
+			return <<<FORM_MARKUP
+	<form action="assets/inc/process.inc.php" method="post">
+		<legend>$arrProduct[product_name]</legend>
+		<input type="hidden" name="product_id" value="$arrProduct[product_id]" />
+		$strCluster<br>
+		<label>$strTasterName</label>
+		<input type="hidden" name="action" value="write_cluster" />
+		<input type="hidden" name="token" value="$_SESSION[token]" />
+		<input type="submit" name="cluster_submit_previous" value="Назад" class="previousCluster"/>
+		<input type="submit" name="cluster_submit" value="Далее" class="nextCluster"/>
+	</form>
+	
+FORM_MARKUP;
+		}	
+	}
+	
+	/**
+	 * Сохраняет данные о проведенном опросе в БД
+	 */
+	public function saveResults()
+	{
+		//в зависимость от типа текущего опроса обрабатываем форму
+		if ( $this->_type == M_TRIANG )
+		{
+			//$strComment = $_POST['comment'];
+			/*
+			* Получить идентификаторы дегустатора и опроса
+			*/
+			$idTaster = (int)$_SESSION['taster_id'];
+			$idInterview = (int)$_SESSION['interview_id']; 	
+		
+				$idProd = (int)$_SESSION['temp_results'][0]['idProd'];
+				
+				$strQuery = "INSERT INTO `trianganswers`
+								(
+								`interview_id`, 
+								`taster_id`, 
+								`product_id`, 
+								`ts`, 
+								`comment`
+								) 
+							VALUES 
+								(
+								$idInterview,
+								$idTaster,
+								$idProd,
+								:ts,
+								:comment
+								)";
+				
+				try
+				{
+				
+					$stmt = $this->_objDB->prepare($strQuery);
+					
+					$ts = $_SESSION['temp_results'][0]['ts'];
+					$strComment = $_SESSION['temp_results'][0]['comment'];
+					$stmt->bindParam(":ts", $ts, PDO::PARAM_STR);
+					$stmt->bindParam(":comment", $strComment, PDO::PARAM_STR);
+					$stmt->execute();
+					$stmt->closeCursor();
+				
+				}
+				catch (Exception $e)
+				{
+					die ($e->getMessage() );
+				}
+		
+			return TRUE;
+		}
+		
+		//записать в базу 
+		$strQuery = "INSERT INTO `answers`
+							(`taster_id`,
+							 `interview_product_id`,
+							 `responseOption_id`,
+							 `ts`,
+							 `comment`, `question_id`)
+						VALUES
+							(:tasterId, :prodId, :optionId, :ts, :comment, :question_id)";
+		$stmt = $this->_objDB->prepare($strQuery);
+		
+		$arrQuestNums = $_SESSION['temp_results'];
+		
+		foreach ($arrQuestNums as $prodUnit)
+		{
+			foreach($prodUnit as $questUnit)
+			{
+				if ($questUnit['prodId'] > 0)
+				{
+					//получить данные из массива
+					$idTaster = (int)$_SESSION['taster_id'];
+					$idProd = $questUnit['prodId'];
+					$ansNum = $questUnit['optionId'];
+					$ts = $questUnit['ts'];
+					$comment = $questUnit['comment'];
+					$num = $questUnit['question_id'];
+					
+					try
+					{
+						//подставляем параметры в запрос
+						$stmt->bindParam(":tasterId", $idTaster, PDO::PARAM_INT);
+						$stmt->bindParam(":prodId", $idProd, PDO::PARAM_INT);
+						$stmt->bindParam(":optionId", $ansNum, PDO::PARAM_INT);
+						$stmt->bindParam(":ts", $ts, PDO::PARAM_STR);
+						$stmt->bindParam(":comment", $comment, PDO::PARAM_STR);
+						$stmt->bindParam(":question_id", $num, PDO::PARAM_INT);
+						$stmt->execute();
+						$stmt->closeCursor();
+					}
+					catch (Exception $e)
+					{
+						die ($e->getMessage() );
+					}
+				}
+			}
+		}
+		
+		return TRUE;
 	}
 	
 	/**
@@ -165,6 +359,10 @@ FORM_MARKUP;
 		
 		$arrQuestions = array();
 		$count = 1;
+
+		//текущий продукт
+		$tmpProductId = $_SESSION['product_id'];
+		
 		//получить объекты вопросов текущего опроса
 		foreach($arrId as $ID)
 		{
@@ -174,21 +372,37 @@ FORM_MARKUP;
 							<td>$count</td>
 							<td>$question->text</td>
 							";
+			$tmpComment = $_SESSION['temp_results'][$tmpProductId][$question->id]['comment'];
 			if ($question->type == Q_CLOSE)
 			{
 				$strTable .= "<td>";
 				for ($i = 0; $i<NUM_OF_OPTIONS; $i++)
 				{
-				$responseOption = $question->arrResponseOptions[$i];
-					$strTable.= "<input type=\"radio\" name=\"quest$question->id\"
-					value=\"$responseOption->id\">$responseOption->text<br>";
+					$responseOption = $question->arrResponseOptions[$i];
+					// если в массиве SESSION уже был установлен соответствующий ответ 
+					// для текущего продукта, то установить флаг checked
+					if ($_SESSION['temp_results'][$tmpProductId][$question->id]['optionId'] == $responseOption->id)
+						$strTable.= "<input type=\"radio\" name=\"quest$question->id\"
+							value=\"$responseOption->id\" checked>$responseOption->text<br>";
+					else
+						$strTable.= "<input type=\"radio\" name=\"quest$question->id\"
+							value=\"$responseOption->id\">$responseOption->text<br>";
 				}
 				$strTable .= "</td>";
-				$strTable .= "<td><textarea name=\"comment$question->id\"></textarea></td></tr>";
+				// вставка комментария из массива SESSION
+				if (isset($_SESSION['temp_results'][$tmpProductId][$question->id]['comment']))
+					$strTable .= "<td><textarea name=\"comment$question->id\">$tmpComment</textarea>
+								</td></tr>";
+				else
+					$strTable .= "<td><textarea name=\"comment$question->id\"></textarea></td></tr>";
 			}
 			else
 			{
-				$strTable .= "<td colspan = \"2\"><textarea name=\"comment$question->id\"></textarea></td></tr>";
+				// вставка комментария из массива SESSION
+				if (isset($_SESSION['temp_results'][$tmpProductId][$question->id]['comment']))
+					$strTable .= "<td colspan = \"2\"><textarea name=\"comment$question->id\">$tmpComment</textarea></td></tr>";
+				else
+					$strTable .= "<td colspan = \"2\"><textarea name=\"comment$question->id\"></textarea></td></tr>";
 			}
 			$count += 1;
 		}
@@ -290,6 +504,8 @@ FORM_MARKUP;
 		$prodId2 = ($arrProductOrder[0]['pos2'] == 'A') ? $arrIdProduct[0]['product_id'] : $arrIdProduct[1]['product_id'];
 		$prodId3 = ($arrProductOrder[0]['pos3'] == 'A') ? $arrIdProduct[0]['product_id'] : $arrIdProduct[1]['product_id'];
 		
+		$tmpComment = $_SESSION['temp_results'][0]['comment'];
+				
 		return <<<TRIANGLE
 	<form action="assets/inc/process.inc.php" method="post">
 		<table width="100%" align="center" border="1">
@@ -310,7 +526,7 @@ FORM_MARKUP;
 				<td colspan="3">Замечания:</td>
 			</tr>
 			<tr align="center">
-				<td colspan="3"><textarea name="comment"></textarea></td>
+				<td colspan="3"><textarea name="comment">$tmpComment</textarea></td>
 			</tr>
 		</table>
 		
@@ -318,11 +534,12 @@ FORM_MARKUP;
 		<label>$strTasterName</label>
 		<input type="hidden" name="action" value="write_cluster" />
 		<input type="hidden" name="token" value="$_SESSION[token]" />
-		<input type="submit" name="cluster_submit" value="Далее" class="nextCluster"/>
+		<input type="submit" name="cluster_submit" value="Закончить опрос"  class="nextCluster"/>
+		
 	</form>
 TRIANGLE;
 	}
-	
+	//<--!input type="submit" name="cluster_submit" value="Далее" class="nextCluster"/!-->
 	
 	/**
 	 * Возвращает разметку для блока вопросов составленных по профильному методу
@@ -378,26 +595,46 @@ TRIANGLE;
 		 */
 		$curQuest = NULL;
 		$i = 0;
+		
+		$tmpProductId = $_SESSION['product_id'];
+		
 		foreach ($results as $quest )
 		{
 		 	if ( $curQuest !== $quest['question_id'] )
 			{
+				$tmpComment = $_SESSION['temp_results'][$tmpProductId][$curQuest]['comment'];	
+				
 				//закрываем строку таблицы
 				if ($curQuest != NULL )
 				{
-					$strTable .= "\n\t\t</nobr></td>\n\t\t<td><textarea name=\"comment$curQuest\"></textarea></td>\n\t</tr>";
+					 // вставка комментария из массива SESSION
+					if (isset($tmpComment))
+						$strTable .= "\n\t\t</nobr></td>\n\t\t<td><textarea name=\"comment$curQuest\">$tmpComment</textarea></td>\n\t</tr>";
+					else
+						$strTable .= "\n\t\t</nobr></td>\n\t\t<td><textarea name=\"comment$curQuest\"></textarea></td>\n\t</tr>";
 				}
 				$i++;
 				$curQuest = $quest['question_id'];
 				$strTable .= "\n\t<tr>\n\t\t<td>$i</td>\n\t\t<td>$quest[question_text]</td>\n\t\t<td><nobr>";
 			}
+			
+			
+			// если в массиве SESSION установлен соответствующий ответ, то установить флаг checked
+			if ($_SESSION['temp_results'][$tmpProductId][$quest['question_id']]['optionId'] == $quest[responseoption_id])
+				$strTable .= "\n\t\t\t<input type=\"radio\" name=\"quest$quest[question_id]\" 
+						value=\"$quest[responseoption_id]\" checked>$quest[responseoption_num]";
+			else
 			$strTable .= "\n\t\t\t<input type=\"radio\" name=\"quest$quest[question_id]\" 
-					value=\"$quest[responseoption_id]\">$quest[responseoption_num]";
+						value=\"$quest[responseoption_id]\">$quest[responseoption_num]";
 		}
 		/*
 		 * Закрываем таблицу
 		 */
-		$strTable .= "\n\t\t</td>\n\t\t</nobr><td><textarea name=\"comment$curQuest\"></textarea></td>\n\t</tr>\n</table>\n";
+		$tmpComment = $_SESSION['temp_results'][$tmpProductId][$quest['question_id']]['comment'];	
+		if (isset($tmpComment))
+			$strTable .= "\n\t\t</td>\n\t\t</nobr><td><textarea name=\"comment$curQuest\">$tmpComment</textarea></td>\n\t</tr>\n</table>\n";
+		else
+			$strTable .= "\n\t\t</td>\n\t\t</nobr><td><textarea name=\"comment$curQuest\"></textarea></td>\n\t</tr>\n</table>\n";
 		return $strTable;
 	}
 	 
@@ -455,26 +692,48 @@ TRIANGLE;
 		 */
 		$curQuest = NULL;
 		$i = 0;
+		
+		$tmpProductId = $_SESSION['product_id'];
+		
 		foreach ($results as $quest )
 		{
-		 	if ( $curQuest !== $quest['question_id'] )
+			if ( $curQuest !== $quest['question_id'] )
 			{
+				$tmpComment = $_SESSION['temp_results'][$tmpProductId][$curQuest]['comment'];
+				
 				//закрываем строку таблицы
 				if ($curQuest != NULL )
 				{
-					$strTable .= "\n\t\t</td>\n\t\t<td><textarea name=\"comment$curQuest\"></textarea></td>\n\t</tr>";
+					 // вставка комментария из массива SESSION
+					if (isset($tmpComment))
+						$strTable .= "\n\t\t</td>\n\t\t<td><textarea name=\"comment$curQuest\">$tmpComment</textarea></td>\n\t</tr>";
+					else
+						$strTable .= "\n\t\t</td>\n\t\t<td><textarea name=\"comment$curQuest\"></textarea></td>\n\t</tr>";
 				}
 				$i++;
 				$curQuest = $quest['question_id'];
 				$strTable .= "\n\t<tr>\n\t\t<td>$i</td>\n\t\t<td>$quest[question_text]</td>\n\t\t<td>";
 			}
-			$strTable .= "\n\t\t\t<input type=\"radio\" name=\"quest$quest[question_id]\" 
-					value=\"$quest[responseoption_id]\">$quest[responseoption_text]<br>";
+			
+			// если в массиве SESSION уже был установлен соответствующий ответ 
+			// для текущего продукта, то установить флаг checked
+			if ($_SESSION['temp_results'][$tmpProductId][$quest['question_id']]['optionId'] == $quest[responseoption_id])
+				$strTable .= "\n\t\t\t<input type=\"radio\" name=\"quest$quest[question_id]\" 
+						value=\"$quest[responseoption_id]\" checked>$quest[responseoption_text]<br>";
+			else
+				$strTable .= "\n\t\t\t<input type=\"radio\" name=\"quest$quest[question_id]\" 
+						value=\"$quest[responseoption_id]\">$quest[responseoption_text]<br>";
+			
 		}
 		/*
 		 * Закрываем таблицу
 		 */
-		$strTable .= "\n\t\t</td>\n\t\t<td><textarea name=\"comment$curQuest\"></textarea></td>\n\t</tr>\n</table>\n";
+		$tmpComment = $_SESSION['temp_results'][$tmpProductId][$quest['question_id']]['comment'];	
+		//вставка комментария из массива SESSION
+		if (isset($tmpComment))
+			$strTable .= "\n\t\t</td>\n\t\t<td><textarea name=\"comment$curQuest\">$tmpComment</textarea></td>\n\t</tr>\n</table>\n";
+		else
+			$strTable .= "\n\t\t</td>\n\t\t<td><textarea name=\"comment$curQuest\"></textarea></td>\n\t</tr>\n</table>\n";
 		return $strTable;
 	}
 	
@@ -497,7 +756,7 @@ TRIANGLE;
 		//если передан идентификатор добавляем условие 
 		if ( !empty($id))
 		{
-			$strQuery .= " WHERE `interview_product`.`interview_product_id` >$id
+			$strQuery .= " WHERE `interview_product`.`interview_product_id` > $id
 									AND `interview_product`.`interview_id` = $idInterview"; 
 		}
 		else
@@ -528,6 +787,58 @@ TRIANGLE;
 	}
 	
 	/**
+	 * Возвращает ассоциативный массив содержащий все данные о продукте с 
+	 * идентификатором меньше, чем переданный
+	 *
+	 * @param int $id: идентификатор последнего продукта
+	 * @return mixed: NULL - в случае отсутствия следующего образца продукции 
+	 * для данной анкеты и array ассоциативный массив если образец существует
+	 */
+	private function _previousProduct($id=NULL)
+	{
+		
+		$idInterview = $_SESSION['interview_id'];
+		$strQuery = "SELECT 
+						`interview_product`.`interview_product_id` AS `product_id`,
+						`products`.`product_name`
+					FROM `products`
+					LEFT JOIN `interview_product` ON `products`.`product_id` = `interview_product`.`product_id`";
+		//если передан идентификатор добавляем условие 
+		if ( !empty($id))
+		{
+			$strQuery .= " WHERE `interview_product`.`interview_product_id` < $id
+									AND `interview_product`.`interview_id` = $idInterview"; 
+		}
+		else
+		{
+			return NULL;
+			//$strQuery .= " WHERE `interview_product`.`interview_id` = $idInterview";
+		}
+		
+		$strQuery .= " ORDER BY `interview_product`.`interview_product_id` DESC 
+					LIMIT 1";
+		
+		try
+		{
+			$stmt = $this->_objDB->prepare($strQuery);
+			if ( !empty($id) )
+			{
+				$stmt->bindParam(":id", $id, PDO::PARAM_INT);
+			}
+			$stmt->execute();
+			$result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			$stmt->closeCursor();
+			
+			return empty($result) ? NULL : $result[0];
+		}
+		catch (Exception $e)
+		{
+			die ($e->getMessage() );
+		}
+	}
+	
+	
+	/*
 	 * Возвращает строку с именем и фамилией текущего дегустатора
 	 *
 	 * @return string
@@ -535,8 +846,8 @@ TRIANGLE;
 	private function _curTasterName()
 	{
 		/*
-		 * Получаем имя и фамилию текущего администратора из сессии
-		 */
+		* Получаем имя и фамилию текущего администратора из сессии
+		*/
 		$strSurname = $_SESSION['taster_surname'];
 		$strName = $_SESSION['taster_name'];
 		
@@ -552,7 +863,23 @@ TRIANGLE;
 	 */
 	public function processClusterForm()
 	{
-		//в зависимость от типа текущего опроса обрабатываем форму
+		/*
+		* Определение нажатой кнопки
+		*/
+		if (isset($_POST['cluster_submit_previous']))
+		{
+			$_SESSION['button'] = "previous";
+		}
+		if (isset($_POST['cluster_submit']))
+		{
+			$_SESSION['button'] = "next";
+		
+		}
+		if (isset($_POST['finish_interview']))
+		{
+			$_SESSION['button'] = "finish";
+			return TRUE;
+		}
 		
 		/*
 		 * Получить идентификатор дегустатора
@@ -566,34 +893,25 @@ TRIANGLE;
 		
 		$idInterview = (int)$_SESSION['interview_id']; 
 		
+		//в зависимость от типа текущего опроса обрабатываем форму
 		if ( $this->_type == M_TRIANG )
 		{
 			$strComment = $_POST['comment'];
-			
-			$strQuery = "INSERT INTO `trianganswers`
-							(
-							`interview_id`, 
-							`taster_id`, 
-							`product_id`, 
-							`ts`, 
-							`comment`
-							) 
-						VALUES 
-							(
-							$idInterview,
-							$idTaster,
-							$idProd,
-							:ts,
-							:comment
-							)";
+		
 			try
 			{
-				$stmt = $this->_objDB->prepare($strQuery);
-				$ts = date('Y-m-d h:i:s');
-				$stmt->bindParam(":ts", $ts, PDO::PARAM_STR);
-				$stmt->bindParam(":comment", $strComment, PDO::PARAM_STR);
-				$stmt->execute();
-				$stmt->closeCursor();
+				//записываем все поля кроме идентификатора анкетируемого и номера опроса (хранятся в сессии)
+				$arrTempResults[0] = array(
+										'idProd' => $idProd,
+										'ts' => date('Y-m-d h:i:s'),
+										'comment' => $strComment
+									);
+									
+				//запись в сессию данных о выбранных ответах
+				$_SESSION['temp_results'] =$arrTempResults;
+				
+				//Завершение опроса, тк в методе треугольника всего один вопрос
+				$this->finishInterview();
 			}
 			catch (Exception $e)
 			{
@@ -650,19 +968,6 @@ TRIANGLE;
 			die ($e->getMessage() );
 		}
 		
-		/*
-		 * Получить номера ответов которые дал дегустатор и записать их в базу 
-		 */
-		$strQuery = "INSERT INTO `answers`
-							(`taster_id`,
-							 `interview_product_id`,
-							 `responseOption_id`,
-							 `ts`,
-							 `comment`, `question_id`)
-						VALUES
-							(:tasterId, :prodId, :optionId, :ts, :comment, :question_id)";
-		$stmt = $this->_objDB->prepare($strQuery);
-		
 		foreach ($arrQuestNums as $questNum)
 		{
 			//получить ответ на текущий вопрос
@@ -671,21 +976,25 @@ TRIANGLE;
 			$comment = htmlentities($_POST['comment'.$num], ENT_QUOTES);
 			try
 			{
-				//подставляем параметры в запрос
-				$stmt->bindParam(":tasterId", $idTaster, PDO::PARAM_INT);
-				$stmt->bindParam(":prodId", $idProd, PDO::PARAM_INT);
-				$stmt->bindParam(":optionId", $ansNum, PDO::PARAM_INT);
-				$stmt->bindParam(":ts", date('Y-m-d h:i:s'), PDO::PARAM_STR);
-				$stmt->bindParam(":comment", $comment, PDO::PARAM_STR);
-				$stmt->bindParam(":question_id", $num, PDO::PARAM_INT);
-				$stmt->execute();
-				$stmt->closeCursor();
+				//записываем все поля кроме идентификатора анкетируемого и номера опроса (хранятся в сессии)
+				$arrTempResults[$num] = array(
+										'prodId' => $idProd,
+										'optionId' => $ansNum,
+										'ts' => date('Y-m-d h:i:s'),
+										'comment' => $comment, 
+										'question_id' => $num
+									);
+				
+				//запись в сессию данных о выбранных ответах
+				$_SESSION['temp_results'][$idProd] =$arrTempResults;
+				
 			}
 			catch (Exception $e)
 			{
 				die ($e->getMessage() );
 			}
 		}
+		
 		return TRUE;
 	}
 	
@@ -698,6 +1007,7 @@ TRIANGLE;
 	 */
 	public function processStartInterview()
 	{
+		
 		/*
 		 * Получаем идентификатор дегустатора из формы
 		 */
@@ -709,6 +1019,8 @@ TRIANGLE;
 			header('Location: ../../');
 			exit;
 		}
+		
+		$_SESSION['button'] = "startInterview";
 		
 		$id = (int)$_POST['taster_id'];
 		/*
@@ -1191,6 +1503,7 @@ CMD_SAVE;
 			
 			foreach($arrEditedInterview['products'] as $product)
 			{
+
 				$stmt1->bindParam(":productId", $product->id, PDO::PARAM_INT);
 				$stmt1->execute();
 			}

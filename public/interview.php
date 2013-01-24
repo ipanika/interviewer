@@ -22,8 +22,8 @@ include_once 'assets/common/header.inc.php';
 if ( !isset($_SESSION['taster_id']) )
 {	
 	//отправляем пользователя на главную страницу
-	//header("Location: ./");
-	//exit;
+	header("Location: ./");
+	exit;
 }
 
 /*
@@ -34,7 +34,18 @@ $objInterview = new Interview($objDB);
 ?>
 
 <div id="content">
-<?php echo $objInterview->nextCluster()?>
+<?php 
+//print_r($_SESSION['product_id']);
+//print_r($_SESSION['temp_results']);
+
+//переход в опросе к следующему или предыдущему образцу
+if ($_SESSION['button'] == "next" or $_SESSION['button'] == "startInterview")
+	echo $objInterview->nextCluster();
+elseif ($_SESSION['button'] == "previous")
+	echo $objInterview->previousCluster();
+elseif ($_SESSION['button'] == "finish")
+	echo $objInterview->finishInterview();
+?>
 </div><!-- end #content -->
 
 <?php

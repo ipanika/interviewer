@@ -60,6 +60,11 @@ $arrActions = array(
 			'method' => 'processClusterForm',
 			'header' => 'Location: ../../interview.php'
 		),
+		'write_previous_cluster' => array(
+			'object' => 'Interview',
+			'method' => 'processClusterForm',
+			'header' => 'Location: ../../interview.php'
+		),
 		'new_cluster' => array(
 			'object' => 'Interview',
 			'method' => 'processNewClusterForm',
@@ -166,6 +171,7 @@ $arrActions = array(
  * Убедиться в том, что маркер защиты от CSRF был передан и что 
  * запрошенное действие существует в поисковом массиве
  */
+ 
 if ( $_POST['token'] == $_SESSION['token'] 
 		&& isset($arrActions[$_POST['action']]) )
 {
