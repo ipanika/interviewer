@@ -19,13 +19,22 @@ $objManager = new TasterManager($objDB);
 
 ?>
 
-<div id="content">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
 
-<?php echo $objManager->displayTasterForm(); ?>
+<html>
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Windows (vers 14 February 2006), see www.w3.org">
 
-</div><!-- end #content -->
+  <title></title>
+</head>
 
-<?php
+<body>
+  <div id="content">
+    <?php echo $objManager->displayTasterForm(); ?>
+
+  </div><!-- end #content -->
+  <?php
 
 /*
  * Вывести завершающую часть страницы
@@ -33,3 +42,5 @@ $objManager = new TasterManager($objDB);
 include_once 'assets/common/footer.inc.php';
 
 ?>
+</body>
+</html>

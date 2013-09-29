@@ -30,31 +30,47 @@ include_once 'assets/common/header.inc.php';
 $objInterview = new Interview($objDB);
 ?>
 
-<div id="content">
-	<form action="assets/inc/process.inc.php" method="post">
-		<input type="submit" name="admin_logout" 
-			value="Выход"/>
-		<input type="hidden" name="token" value="<?php echo $_SESSION['token'];?>"/>
-		<input type="hidden" name="action" value="user_logout" />
-	</form>
-		
-	<label>Текущий опрос:</label>
-	<?php echo $objInterview->displayCurInterview()?>
-	
-	<a href="reportProducts.php" class="button">Экспорт списка образцов</a> <br>
-	<a href="editInterview.php" class="button">Создать новый дегустационный лист</a>
-	<a href="changeCurInterview.php" class="button">Сменить текущий дегустационный лист</a>
-	<a href="report.php" class="button">Отчеты по проведенным опросам</a><br>
-	<a href="groupList.php" >Список групп кондитерских изделий</a><br>
-	<a href="enterpriseList.php">Список выпускающих предприятий</a><br>
-	<a href="interviewList.php">Список дегустационных листов</a><br>
-	<a href="productList.php">Список образцов продукции</a><br>
-</div><!-- end #content -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 
-<?php
+<html>
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Windows (vers 14 February 2006), see www.w3.org">
+
+  <title></title>
+</head>
+
+<body>
+  <div id="content">
+    <form action="assets/inc/process.inc.php" method="post">
+      <input type="submit" name="admin_logout" value="Выход">
+      <input type="hidden" name="token" value=
+      "<?php echo $_SESSION['token'];?>"> <input type="hidden"
+      name="action" value="user_logout">
+    </form><label>Текущий опрос:</label>
+    <?php echo $objInterview->displayCurInterview()?>
+ <a href=
+    "reportProducts.php" class="button">Экспорт списка
+    образцов</a><br>
+    <a href="editInterview.php" class="button">Создать новый
+    дегустационный лист</a> <a href="changeCurInterview.php" class=
+    "button">Сменить текущий дегустационный лист</a> <a href=
+    "report.php" class="button">Отчеты по проведенным
+    опросам</a><br>
+    <a href="groupList.php">Список групп кондитерских
+    изделий</a><br>
+    <a href="enterpriseList.php">Список выпускающих
+    предприятий</a><br>
+    <a href="interviewList.php">Список дегустационных
+    листов</a><br>
+    <a href="productList.php">Список образцов продукции</a><br>
+  </div><!-- end #content -->
+  <?php
 
 /*
  * Включить завершающую часть страницы
  */
 include_once 'assets/common/footer.inc.php';
 ?>
+</body>
+</html>

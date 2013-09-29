@@ -21,31 +21,38 @@ include_once 'assets/common/header.inc.php';
  */
 ?>
 
-<div id="content">
-	<form action="assets/inc/process.inc.php" method="post">
-		<fieldset>
-		<legend>Пожалуйста, зарегистрируйтесь</legend>
-		<label for="uname">Имя пользователя:</label>
-		<input type="text" name="uname"
-			id="uname" value=""/>
-		<label for="pword">Пароль: </label>
-		<input type="password" name="pword" 
-			id="pword" value=""/>
-		<input type="hidden" name="token"
-			value="<?php echo $_SESSION['token'];?>" />
-		<input type="hidden" name="action" 
-			value="user_login" />
-		<input type="submit" name="login_submit"
-			value="Вход" />
-		или <a href="./" class="button">отменить</a>
-		</fieldset>
-	</form>
-</div><!-- end #content -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
 
-<?php
+<html>
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for Windows (vers 14 February 2006), see www.w3.org">
+
+  <title></title>
+</head>
+
+<body>
+  <div id="content">
+    <form action="assets/inc/process.inc.php" method="post">
+      <fieldset>
+        <legend>Пожалуйста, зарегистрируйтесь</legend> <label for=
+        "uname">Имя пользователя:</label> <input type="text" name=
+        "uname" id="uname" value=""> <label for=
+        "pword">Пароль:</label> <input type="password" name="pword"
+        id="pword" value=""> <input type="hidden" name="token"
+        value="<?php echo $_SESSION['token'];?>"> <input type=
+        "hidden" name="action" value="user_login"> <input type=
+        "submit" name="login_submit" value="Вход"> или <a href="./"
+        class="button">отменить</a>
+      </fieldset>
+    </form>
+  </div><!-- end #content -->
+  <?php
 
 /*
  * Включить завершающую часть страницы
  */
 include_once 'assets/common/footer.inc.php';
 ?>
+</body>
+</html>
