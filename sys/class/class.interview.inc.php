@@ -45,16 +45,30 @@ class Interview extends DB_Connect
 	* Завершает опрос записью  данных,хранящихся в SESSION, в БД
 	*/
 	public function finishInterview()
-	{
-		
+	{	
 		//сохраняем ответы в БД в зависимости от метода опроса
-		$this->saveResults();
-		
-		//завершаем сессию
-		session_destroy();
-		
-		header("Location:index.php");
-				
+		if ($this->saveResults())
+		{
+			//завершаем сессию
+			session_destroy();
+			
+			header("Location:index.php");
+
+		}
+		else
+		{	
+			echo "<script>alert(\"Вернитесь назад \");</script>";
+			return <<<GOOD_BYE
+				<form action="assets/inc/process.inc.php" method="post">
+					<input type="hidden" name="action" value="write_cluster" />
+					<input type="hidden" name="token" value="$_SESSION[token]" />
+					<input type="submit" name="cluster_submit_previous" value="Назад" class="previousCluster"/>
+					<input type="submit" name="finish_interview" value="Закончить опрос" />
+				</form>
+GOOD_BYE;
+		}
+			
+			
 	}
 	/**
 	 * Возвращает HTML-разметку для отображения блока вопросов.
@@ -265,6 +279,30 @@ FORM_MARKUP;
 			return TRUE;
 		}
 		
+		$arrQuestNums = $_SESSION['temp_results'];
+		
+		
+		/*
+		Проверить наличие информации о всех продуктах из дег.листа,
+		если отсутствует информация по какому-то из продуктов, то
+		попросить дегустатора вернуться обратно
+		*/
+		$idForQuery = $_SESSION['interview_id'];
+		
+		$strQuery = "SELECT 
+							count(`product_id`) as COUNT
+					FROM `interview_product` 
+					WHERE `interview_id` = $idForQuery";
+		
+		$stmt = $this->_objDB->prepare($strQuery);
+		$stmt->execute();
+		$arrOfRes = $stmt->fetch(PDO::FETCH_NUM);//All(PDO::FETCH_ASSOC);
+		$stmt->closeCursor();
+		
+		if ((int) $arrOfRes[0] != count($arrQuestNums))
+		{
+			return FALSE;
+		}
 		//записать в базу 
 		$strQuery = "INSERT INTO `answers`
 							(`taster_id`,
@@ -275,8 +313,6 @@ FORM_MARKUP;
 						VALUES
 							(:tasterId, :prodId, :optionId, :ts, :comment, :question_id)";
 		$stmt = $this->_objDB->prepare($strQuery);
-		
-		$arrQuestNums = $_SESSION['temp_results'];
 		
 		foreach ($arrQuestNums as $prodUnit)
 		{
@@ -984,9 +1020,11 @@ TRIANGLE;
 										'comment' => $comment, 
 										'question_id' => $num
 									);
-				
-				//запись в сессию данных о выбранных ответах
-				$_SESSION['temp_results'][$idProd] =$arrTempResults;
+				if ($idProd != 0 and $idProd != NULL)
+				{
+					//запись в сессию данных о выбранных ответах
+					$_SESSION['temp_results'][$idProd] =$arrTempResults;
+				}
 				
 			}
 			catch (Exception $e)
