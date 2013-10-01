@@ -240,8 +240,8 @@ class ExportReport extends DB_Connect
 			die ( $e->getMessage() );
 		}
 		
-		$strProductNameA = $arrResults[0]['product_name'];
-		$strProductNameB = $arrResults[1]['product_name'];
+		$strProductNameA = htmlspecialchars_decode($arrResults[0]['product_name']);
+		$strProductNameB = htmlspecialchars_decode($arrResults[1]['product_name']);
 		$productAValue = $arrResults[0]['count_value'];
 		$productBValue = $arrResults[1]['count_value'];
 		$numTasters = $arrResults[0]['count_value'] + $arrResults[1]['count_value'];
@@ -352,9 +352,9 @@ class ExportReport extends DB_Connect
 		
 		$objSheet = $objPHPExcel->setActiveSheetIndex(0);
 		// Напечатать заголовок
-		$objSheet->setCellValue('A1', "Отчет по дегустационному листу: $strInterviewName от $strInterviewDate");
+		$objSheet->setCellValue('A1', "Отчет по дегустационному листу: ".htmlspecialchars_decode($strInterviewName).' от '.htmlspecialchars_decode($strInterviewDate));
 		$objSheet->mergeCells( 'A1:E1');
-		$objSheet->setCellValue('A2', "Выпускающее предприятие: $strEnterpriseName");
+		$objSheet->setCellValue('A2', "Выпускающее предприятие: ".htmlspecialchars_decode($strEnterpriseName));
 		$objSheet->mergeCells( 'A2:E2');
 	}
 	
@@ -517,7 +517,7 @@ class ExportReport extends DB_Connect
 			{
 				$curProductId = $elem['product_id'];
 				$arrProducts[$curProductId] = array();
-				$arrProducts[$curProductId]['product_name'] = $elem['product_name'];
+				$arrProducts[$curProductId]['product_name'] = htmlspecialchars_decode($elem['product_name']);
 				//вариант ответа для данного продукта
 				$responseOption = array(
 					'responseOption_id' => $elem['responseOption_id'],
@@ -714,7 +714,7 @@ class ExportReport extends DB_Connect
 				$arrQuestions[$i]['numOfTasters'] += $option['amount_taster'];
 				//количество участников давших текущую оценку
 				$arrQuestions[$i]['scores'][$option['responseOption_num']] = $option['amount_taster'];
-				$arrQuestions[$i]['comment'] .= '<br>' . $option['comment'];
+				$arrQuestions[$i]['comment'] .= $option['comment'];
 			}
 		}
 		
@@ -761,7 +761,7 @@ class ExportReport extends DB_Connect
 		$question['averToRate'] = $average * $question['question_rate'];
 		$overallRating += $average * $question['question_rate'];
 		//выводим 1 вопрос, название образца и суммарный балл
-		$this->_printComplxFirstRow($objPHPExcel,$arrProduct['product_name'], $question, $productNum, $i, $overallRating);
+		$this->_printComplxFirstRow($objPHPExcel,htmlspecialchars_decode($arrProduct['product_name']), $question, $productNum, $i, $overallRating);
 		
 		// вернуть количество добавленых строк
 		return $i;
@@ -960,7 +960,7 @@ class ExportReport extends DB_Connect
 			{
 				$curProductId = $elem['product_id'];
 				$arrProducts[$curProductId] = array();
-				$arrProducts[$curProductId]['product_name'] = $elem['product_name'];
+				$arrProducts[$curProductId]['product_name'] = htmlspecialchars_decode($elem['product_name']);
 				//вариант ответа для данного продукта
 				$responseOption = array(
 					'responseOption_id' => $elem['responseOption_id'],
@@ -1172,7 +1172,7 @@ REP;
 			{
 				$curProductId = $elem['product_id'];
 				$arrProducts[$curProductId] = array();
-				$arrProducts[$curProductId]['product_name'] = $elem['product_name'];
+				$arrProducts[$curProductId]['product_name'] = htmlspecialchars_decode($elem['product_name']);
 				//вариант ответа для данного продукта
 				$responseOption = array(
 					'responseOption_id' => $elem['responseOption_id'],
@@ -1333,7 +1333,7 @@ REP;
 				$arrQuestions[$i]['numOfTasters'] += $option['amount_taster'];
 				//количество участников давших текущую оценку
 				$arrQuestions[$i]['scores'][$option['responseOption_num']] = $option['amount_taster'];
-				$arrQuestions[$i]['comment'] .= '<br>' . $option['comment'];
+				$arrQuestions[$i]['comment'] .= $option['comment'];
 			}
 		}
 		
@@ -1357,7 +1357,7 @@ REP;
 		$question['averToRate'] = $average * $question['question_rate'];
 		$overallRating += $average * $question['question_rate'];
 		//выводим 1 вопрос, название образца и суммарный балл
-		$this->_printProfilFirstRow($arrProduct['product_name'], $question, $i, $overallRating, $previousRow, $objPHPExcel);
+		$this->_printProfilFirstRow(htmlspecialchars_decode($arrProduct['product_name']), $question, $i, $overallRating, $previousRow, $objPHPExcel);
 				
 		$overallRating = 0;
 		$i = 0;
@@ -1540,7 +1540,7 @@ REP;
 				//вариант ответа для данного продукта согласно типу вопроса
 				if ($elem['question_type'] == Q_CLOSE)
 				{
-					$arrProducts[$curProductId]['product_name'] = $elem['product_name'];
+					$arrProducts[$curProductId]['product_name'] = htmlspecialchars_decode($elem['product_name']);
 					$responseOption = array(
 						'responseOption_id' => $elem['responseOption_id'],
 						'amount_taster' => $elem['amount_taster'],
@@ -1554,7 +1554,7 @@ REP;
 				}
 				else
 				{
-					$arrProducts[$curProductId]['product_name'] = $elem['product_name'];
+					$arrProducts[$curProductId]['product_name'] = htmlspecialchars_decode($elem['product_name']);
 					$responseOption = array(
 						'responseOption_id' => $elem['responseOption_id'],
 						'amount_taster' => $elem['amount_taster'],
@@ -1757,7 +1757,7 @@ REP;
 				else
 				{
 					$arrQuestions[$i]['scores'][$option['responseOption_num']] = $option['amount_taster'];
-					$arrQuestions[$i]['comment'] .= '<br>' . $option['comment'];
+					$arrQuestions[$i]['comment'] .= $option['comment'];
 				}
 			}
 		}
@@ -1780,7 +1780,7 @@ REP;
 		$question['average'] = $average;
 		
 		//выводим 1 вопрос, название образца и суммарный балл
-		$this->_printConsumFirstRow($arrProduct['product_name'], $question, $i, $average, $previousRow, $objPHPExcel);
+		$this->_printConsumFirstRow(htmlspecialchars_decode($arrProduct['product_name']), $question, $i, $average, $previousRow, $objPHPExcel);
 		
 		$overallRating = 0;
 		$i = 0;
