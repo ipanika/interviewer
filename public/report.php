@@ -30,37 +30,26 @@ $objReport = new Report($objDB);
 
 ?>
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<div id="content">
 
-<html>
-<head>
-  <meta name="generator" content=
-  "HTML Tidy for Windows (vers 14 February 2006), see www.w3.org">
+<form action="assets/inc/process.inc.php" method="post">
+		<fieldset>
+			<?php echo $objInterview->displayInterviewList();?>
+			
+			<input type="hidden" name="action" value="get_report" />
+			<input type="hidden" name="token" value="<?php echo$_SESSION['token'];?>" />
+			<input type="submit" name="report_submit" value="Сформировать отчет" />
+			<a href="admin.php" class="button">Отмена</a>
+		</fieldset>
+	</form>
+	<?php echo $objReport->displayReport();?>
+	
+</div><!-- end #content -->
 
-  <title></title>
-</head>
-
-<body>
-  <div id="content">
-    <form action="assets/inc/process.inc.php" method="post">
-      <fieldset>
-        <?php echo $objInterview->displayInterviewList();?>
-<input type="hidden"
-        name="action" value="get_report"> <input type="hidden"
-        name="token" value="<?php echo$_SESSION['token'];?>">
-        <input type="submit" name="report_submit" value=
-        "Сформировать отчет"> <a href="admin.php" class=
-        "button">Отмена</a>
-      </fieldset>
-    </form><?php echo $objReport->displayReport();?>
-
-  </div><!-- end #content -->
-  <?php
+<?php
 
 /*
  * Включить завершающую часть страницы
  */
 include_once 'assets/common/footer.inc.php';
 ?>
-</body>
-</html>

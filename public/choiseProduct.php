@@ -35,28 +35,18 @@ $enterpriseId = $_SESSION['edited_interview']['enterprise']['enterprise_id']
 
 ?>
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<div id="content">
 
-<html>
-<head>
-  <meta name="generator" content=
-  "HTML Tidy for Windows (vers 14 February 2006), see www.w3.org">
+<?php echo $objProductManager->buildProductList($enterpriseId); ?>
 
-  <title></title>
-</head>
+<a href="editProduct.php" class="button">Создать новый образец продукции</a>
 
-<body>
-  <div id="content">
-    <?php echo $objProductManager->buildProductList($enterpriseId); ?>
-<a href="editProduct.php"
-    class="button">Создать новый образец продукции</a>
-  </div><!-- end #content -->
-  <?php
+</div><!-- end #content -->
+
+<?php
 
 /*
  * Включить завершающую часть страницы
  */
 include_once 'assets/common/footer.inc.php';
 ?>
-</body>
-</html>

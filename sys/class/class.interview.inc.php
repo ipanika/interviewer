@@ -57,7 +57,7 @@ class Interview extends DB_Connect
 		}
 		else
 		{	
-			echo "<script>alert(\"Вернитесь назад \");</script>";
+			echo "<script>alert(\"Один или несколько продуктов были пропущены, пожалуйста, воспользуйтесь кнопкой 'Назад' для проверки.\");</script>";
 			return <<<GOOD_BYE
 				<form action="assets/inc/process.inc.php" method="post">
 					<input type="hidden" name="action" value="write_cluster" />

@@ -23,45 +23,32 @@ $objTasterManager = new TasterManager();
  */
 ?>
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<div id="content">
+	<form action="assets/inc/process.inc.php" method="post">
+		<fieldset>
+		<label for="uname">Выберите себя из списка:</label>
+		<?php echo $objTasterManager->buildTasterList()?>
+		<input type="hidden" name="action"
+			value="start_interview"/>
+		<input type="hidden" name="token"
+			value="<?php echo $_SESSION['token'];?>"/>
+		<input type="submit" name="start_submit" 
+			value="Начать опрос"/>
+		<a href="login.php" class="button">Войти в систему как администратор</a>
+		</fieldset>
+	</form>
+	<form action="adminTaster.php" method="post">
+		<fieldset>
+		<label for="user_registry">Если вас нет в списке, заполните иформацию о себе:</label>
+		<input type="submit" name="user_registry" value="О себе"/>
+		</fieldset>
+	</form>
+</div><!-- end #content -->
 
-<html>
-<head>
-  <meta name="generator" content=
-  "HTML Tidy for Windows (vers 14 February 2006), see www.w3.org">
-
-  <title></title>
-</head>
-
-<body>
-  <div id="content">
-    <form action="assets/inc/process.inc.php" method="post">
-      <fieldset>
-        <label for="uname">Выберите себя из списка:</label>
-        <?php echo $objTasterManager->buildTasterList()?>
- <input type="hidden"
-        name="action" value="start_interview"> <input type="hidden"
-        name="token" value="<?php echo $_SESSION['token'];?>">
-        <input type="submit" name="start_submit" value=
-        "Начать опрос"> <a href="login.php" class="button">Войти в
-        систему как администратор</a>
-      </fieldset>
-    </form>
-
-    <form action="adminTaster.php" method="post">
-      <fieldset>
-        <label for="user_registry">Если вас нет в списке, заполните
-        иформацию о себе:</label> <input type="submit" name=
-        "user_registry" value="О себе">
-      </fieldset>
-    </form>
-  </div><!-- end #content -->
-  <?php
+<?php
 
 /*
  * Включить завершающую часть страницы
  */
 include_once 'assets/common/footer.inc.php';
 ?>
-</body>
-</html>

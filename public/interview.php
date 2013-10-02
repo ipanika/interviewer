@@ -33,19 +33,8 @@ $objInterview = new Interview($objDB);
 
 ?>
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
-
-<html>
-<head>
-  <meta name="generator" content=
-  "HTML Tidy for Windows (vers 14 February 2006), see www.w3.org">
-
-  <title></title>
-</head>
-
-<body>
-  <div id="content">
-    <?php 
+<div id="content">
+<?php 
 //print_r($_SESSION['product_id']);
 //print_r($_SESSION['temp_results']);
 
@@ -57,14 +46,12 @@ elseif ($_SESSION['button'] == "previous")
 elseif ($_SESSION['button'] == "finish")
 	echo $objInterview->finishInterview();
 ?>
+</div><!-- end #content -->
 
-  </div><!-- end #content -->
-  <?php
+<?php
 
 /*
  * Включить завершающую часть страницы
  */
 include_once 'assets/common/footer.inc.php';
 ?>
-</body>
-</html>
